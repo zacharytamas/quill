@@ -70,6 +70,10 @@ class Format
       parentTag: 'OL'
       tag: 'LI'
 
+    direction:
+      type: Format.types.LINE
+      style: 'direction'
+      default: 'ltr'
 
   constructor: (@document, @config) ->
 

@@ -20,6 +20,7 @@ Normalizer =
   STYLES: {
     'background-color'
     'color'
+    'direction'
     'font-family'
     'font-size'
     'text-align'

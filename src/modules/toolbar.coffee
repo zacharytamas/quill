@@ -8,8 +8,8 @@ class Toolbar
     container: null
 
   @formats:
-    LINE    : { 'align', 'bullet', 'list' }
-    SELECT  : { 'align', 'background', 'color', 'font', 'size' }
+    LINE    : { 'align', 'bullet', 'list', 'direction' }
+    SELECT  : { 'align', 'background', 'color', 'font', 'size', 'direction' }
     TOGGLE  : { 'bold', 'bullet', 'image', 'italic', 'link', 'list', 'strike', 'underline' }
     TOOLTIP : { 'image', 'link' }
 
