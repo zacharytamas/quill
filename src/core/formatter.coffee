@@ -69,8 +69,8 @@ Formatter =
 
 
   add: (format, node, value) ->
-    return this.remove(node) unless value
-    return node if this.value(node) == value
+    return this.remove(format, node) unless value
+    return node if this.value(format, node) == value
     if _.isString(format.parentTag)
       parentNode = document.createElement(format.parentTag)
       dom(node).wrap(parentNode)
@@ -90,7 +90,7 @@ Formatter =
         node = formatNode
     if _.isString(format.style) or _.isString(format.attribute) or _.isString(format.class)
       if _.isString(format.class)
-        node = this.remove(node)
+        node = this.remove(format, node)
       if dom(node).isTextNode()
         inline = document.createElement(dom.DEFAULT_INLINE_TAG)
         dom(node).wrap(inline)
@@ -126,7 +126,7 @@ Formatter =
       format.prepare(value)
 
   remove: (format, node) ->
-    return node unless this.match(node)
+    return node unless this.match(format, node)
     if _.isString(format.style)
       node.style[format.style] = ''    # IE10 requires setting to '', other browsers can take null
       node.removeAttribute('style') unless node.getAttribute('style')  # Some browsers leave empty style attribute
@@ -151,7 +151,7 @@ Formatter =
     return node
 
   value: (format, node) ->
-    return undefined unless this.match(node)
+    return undefined unless this.match(format, node)
     if _.isString(format.attribute)
       return node.getAttribute(format.attribute) or undefined    # So "" does not get returned
     else if _.isString(format.style)
