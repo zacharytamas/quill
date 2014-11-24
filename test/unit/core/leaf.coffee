@@ -9,22 +9,27 @@ describe('Leaf', ->
     tests =
       'image':
         html: '<img src="http://quilljs.com/images/cloud.png">'
-        text: dom.EMBED_TEXT
+        text: ''
+        length: 1
       'break':
         html: '<br>'
         text: ''
+        length: 0
       'empty element':
         html: '<b></b>'
         text: ''
+        length: 0
       'text':
         html: 'Text'
         text: 'Text'
+        length: 4
 
     _.each(tests, (test, name) ->
       it(name, ->
         @container.innerHTML = test.html
         leaf = new Quill.Leaf(@container.firstChild, {})
         expect(leaf.text).toEqual(test.text)
+        expect(leaf.length).toEqual(test.length)
       )
     )
   )

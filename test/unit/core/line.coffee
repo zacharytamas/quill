@@ -4,7 +4,7 @@ describe('Line', ->
   beforeEach( ->
     resetContainer()
     @container = $('#test-container').html('<div></div>').get(0).firstChild
-    @doc = new Quill.Document(@container, { formats: Quill.DEFAULTS.formats })
+    @doc = new Quill.Document(@container, { formats: Quill.DEFAULTS.formats, embeds: Quill.DEFAULTS.embeds })
   )
 
   describe('constructor', ->
@@ -13,35 +13,35 @@ describe('Line', ->
         initial: '<div style="text-align: right;"></div>'
         expected: '<div style="text-align: right;"><br></div>'
         format: { align: 'right' }
-        leaves: [{ text: '', formats: {} }]
+        leaves: [{ text: '', length: 0, formats: {} }]
       'empty child':
         initial: '<div><b></b></div>'
         expected: '<div><b></b><br></div>'
-        leaves: [{ text: '', formats: { bold: true } }, { text: '', formats: {} }]
+        leaves: [{ text: '', length: 0, formats: { bold: true } }, { text: '', length: 0, formats: {} }]
       'leaf child':
         initial: '<div><b>Bold</b></div>'
         expected: '<div><b>Bold</b></div>'
-        leaves: [{ text: 'Bold', formats: { bold: true } }]
+        leaves: [{ text: 'Bold', length: 4, formats: { bold: true } }]
       'nested leaf child':
         initial: '<div><s><b>Bold</b></s></div>'
         expected: '<div><s><b>Bold</b></s></div>'
-        leaves: [{ text: 'Bold', formats: { bold: true, strike: true } }]
+        leaves: [{ text: 'Bold', length: 4, formats: { bold: true, strike: true } }]
       'media child':
         initial: '<div><img src="http://quilljs.com/images/cloud.png"></div>'
         expected: '<div><img src="http://quilljs.com/images/cloud.png"></div>'
-        leaves: [{ text: dom.EMBED_TEXT, formats: { image: 'http://quilljs.com/images/cloud.png' } }]
+        leaves: [{ text: '', length: 1, formats: { image: 'http://quilljs.com/images/cloud.png' } }]
       'break child':
         initial: '<div><br></div>'
         expected: '<div><br></div>'
-        leaves: [{ text: '', formats: {} }]
+        leaves: [{ text: '', length: 0, formats: {} }]
       'lots of children':
         initial: '<div><b><i>A</i><s>B</s></b><img src="http://quilljs.com/images/cloud.png"><u>D</u></div>'
         expected: '<div><b><i>A</i><s>B</s></b><img src="http://quilljs.com/images/cloud.png"><u>D</u></div>'
         leaves: [
-          { text: 'A', formats: { bold: true, italic: true } }
-          { text: 'B', formats: { bold: true, strike: true } }
-          { text: dom.EMBED_TEXT, formats: { image: 'http://quilljs.com/images/cloud.png' } }
-          { text: 'D', formats: { underline: true } }
+          { text: 'A', length: 1, formats: { bold: true, italic: true } }
+          { text: 'B', length: 1, formats: { bold: true, strike: true } }
+          { text: '', length: 1, formats: { image: 'http://quilljs.com/images/cloud.png' } }
+          { text: 'D', length: 1, formats: { underline: true } }
         ]
 
     _.each(tests, (test, name) ->
@@ -53,7 +53,7 @@ describe('Line', ->
         expect(lineNode.outerHTML).toEqualHTML(test.expected, true)
         expect(line.leaves.length).toEqual(test.leaves.length)
         length = _.reduce(test.leaves, (length, leaf) ->
-          return length + leaf.text.length
+          return length + leaf.length
         , 1)
         expect(line.length).toEqual(length)
         leaves = line.leaves.toArray()
@@ -276,10 +276,6 @@ describe('Line', ->
         initial: '<b><i>01</i><s>23</s></b><i><s>45</s><b>67</b></i>'
         expected: '<b><i>01</i></b><b><s>2</s></b><s>3</s><i><s>45</s></i><i>6<b>7</b></i>'
         args: [3, 4, 'bold', false]
-      'remove image':
-        initial: '<b>01</b><img src="http://quilljs.com/images/cloud.png"><s>34</s>'
-        expected: "<b>01</b>#{dom.EMBED_TEXT}<s>34</s>"
-        args: [2, 1, 'image', false]
       'change format':
         initial: '<b style="color: red;">012</b>'
         expected: '<b style="color: red;">0</b><b style="color: blue;">1</b><b style="color: red;">2</b>'
@@ -334,14 +330,6 @@ describe('Line', ->
         initial: '<br>'
         expected: '<b>|</b><br>'
         offset: 0, formats: { bold: true }
-      'void in empty line':
-        initial: '<br>'
-        expected: '<img src="http://quilljs.com/images/cloud.png"><br>'
-        offset: 0, formats: { image: 'http://quilljs.com/images/cloud.png' }
-      'void in middle of node':
-        initial: '<b>01</b>'
-        expected: '<b>0</b><img src="http://quilljs.com/images/cloud.png"><b>1</b>'
-        offset: 1, formats: { image: 'http://quilljs.com/images/cloud.png' }
 
     _.each(tests, (test, name) ->
       it(name, ->

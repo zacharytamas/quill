@@ -13,7 +13,7 @@ class Leaf extends LinkedList.Node
     @formats = _.clone(formats)
     @id = _.uniqueId(Leaf.ID_PREFIX)
     @text = dom(@node).text()
-    @length = @text.length
+    @length = if dom.EMBED_TAGS[@node.tagName]? then 1 else @text.length
 
   deleteText: (offset, length) ->
     return unless length > 0

@@ -35,7 +35,7 @@ describe('Document', ->
     _.each(tests, (test, name) ->
       it(name, ->
         @container.innerHTML = "<div>#{test.initial}</div>"
-        doc = new Quill.Document(@container.firstChild, { formats: Quill.DEFAULTS.formats })
+        doc = new Quill.Document(@container.firstChild, { formats: Quill.DEFAULTS.formats, embeds: Quill.DEFAULTS.embeds })
         expect(@container.firstChild).toEqualHTML(test.expected, true)
         _.each(doc.lines.toArray(), (line) ->
           expect(dom.LINE_TAGS[line.node.tagName]).toBeDefined()
@@ -52,7 +52,7 @@ describe('Document', ->
           <div><br></div>
           <div><b>6789</b></div>
         </div>'
-      @doc = new Quill.Document(@container.firstChild, { formats: Quill.DEFAULTS.formats })
+      @doc = new Quill.Document(@container.firstChild, { formats: Quill.DEFAULTS.formats, embeds: Quill.DEFAULTS.embeds })
     )
 
     it('findLine() lineNode', ->
@@ -135,7 +135,7 @@ describe('Document', ->
           <div><b>Test</b></div>
         </div>
       ')
-      @doc = new Quill.Document(@container.firstChild, { formats: Quill.DEFAULTS.formats })
+      @doc = new Quill.Document(@container.firstChild, { formats: Quill.DEFAULTS.formats, embeds: Quill.DEFAULTS.embeds })
       @lines = @doc.lines.toArray()
     )
 
@@ -350,7 +350,7 @@ describe('Document', ->
     _.each(tests, (test, name) ->
       it(name, ->
         @container.innerHTML = test.initial.join('')
-        doc = new Quill.Document(@container, { formats: Quill.DEFAULTS.formats })
+        doc = new Quill.Document(@container, { formats: Quill.DEFAULTS.formats, embeds: Quill.DEFAULTS.embeds })
         expect(doc.toDelta()).toEqualDelta(test.expected)
       )
     )

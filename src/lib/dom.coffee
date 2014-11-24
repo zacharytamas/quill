@@ -76,6 +76,7 @@ class Wrapper
 
   length: ->
     return 0 unless @node?
+    return 1 if dom.EMBED_TAGS[@node.tagName]?
     length = this.text().length
     if this.isElement()
       length += @node.querySelectorAll(Object.keys(dom.EMBED_TAGS).join(',')).length

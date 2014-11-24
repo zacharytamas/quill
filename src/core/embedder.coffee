@@ -13,8 +13,8 @@ Embedder =
     node = document.createElement(embed.tag or dom.DEFAULT_INLINE_TAG)
     return Formatter.add(embed, node, value)
 
-  match: (embed, node) ->
-    return Formatter.match(embed, node)
+  value: (embed, node) ->
+    return Formatter.value(embed, node)
 
 
 module.exports = Embedder

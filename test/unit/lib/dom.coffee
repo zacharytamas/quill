@@ -205,7 +205,7 @@ describe('DOM', ->
     )
 
     it('get text embed tag', ->
-      expect(dom(@container.querySelector('img')).text()).toEqual(dom.EMBED_TEXT)
+      expect(dom(@container.querySelector('img')).text()).toEqual('')
     )
 
     it('set text on element', ->
@@ -536,7 +536,7 @@ describe('DOM', ->
         'split image':
           initial:  '<img src="http://quilljs.com/images/cloud.png">'
           expected: '<img src="http://quilljs.com/images/cloud.png">'
-          offset: 1, left: '!', right: null, split: false
+          offset: 1, left: '', right: null, split: false
 
       _.each(tests, (test, name) ->
         it(name, ->

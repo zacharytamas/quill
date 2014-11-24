@@ -130,11 +130,11 @@ class Editor
         line = line.next
     )
 
-  _insertAt: (index, text, attributes = {}) ->
-    @selection.shiftAfter(index, text.length, =>
+  _insertAt: (index, insert, attributes = {}) ->
+    @selection.shiftAfter(index, insert.length or 1, =>
       [line, offset] = @doc.findLineAt(index)
-      if _.isString(text)
-        text = text.replace(/\r\n?/g, '\n')
+      if _.isString(insert)
+        text = insert.replace(/\r\n?/g, '\n')
         lineTexts = text.split('\n')
         _.each(lineTexts, (lineText, i) =>
           if !line? or line.length <= offset    # End of document

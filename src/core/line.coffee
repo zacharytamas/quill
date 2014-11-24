@@ -26,10 +26,14 @@ class Line extends LinkedList.Node
       nodeFormats = _.clone(formats)
       # TODO: optimize
       _.each(@doc.formats, (format, name) ->
-        # format.value() also checks match() but existing bug in tandem-core requires check anyways
-        nodeFormats[name] = Formatter.value(format, node) if format.type != Formatter.types.LINE and Formatter.match(format, node)
+        if format.type != Formatter.types.LINE and value = Formatter.value(format, node)
+          nodeFormats[name] = value
       )
       if Leaf.isLeafNode(node)
+        _.each(@doc.embeds, (embed, name) ->
+          if value = Embedder.value(embed, node)
+            nodeFormats[name] = value
+        )
         @leaves.append(new Leaf(node, nodeFormats))
       else
         this.buildLeaves(node, nodeFormats)
