@@ -1,7 +1,8 @@
 _          = require('lodash')
 Delta      = require('rich-text/lib/delta')
 dom        = require('../lib/dom')
-Format     = require('./format')
+Embedder   = require('./embedder')
+Formatter  = require('./formatter')
 Line       = require('./line')
 LinkedList = require('../lib/linked-list')
 Normalizer = require('../lib/normalizer')
@@ -9,14 +10,23 @@ Normalizer = require('../lib/normalizer')
 
 class Document
   constructor: (@root, options = {}) ->
+    @embeds = {}
     @formats = {}
-    _.each(options.formats, _.bind(this.addFormat, this))
+    _.each(options.embeds, (embed, name) =>
+      this.addEmbed(name, embed)
+    )
+    _.each(options.formats, (format, name) =>
+      this.addFormat(name, format)
+    )
     this.setHTML(@root.innerHTML)
 
-  addFormat: (name, config) ->
-    config = Format.FORMATS[name] unless _.isObject(config)
-    console.warn('Overwriting format', name, @formats[name]) if @formats[name]?
-    @formats[name] = new Format(config)
+  addEmbed: (name, embed) ->
+    embed = Embedder.embeds[name.toUpperCase()] unless _.isObject(embed)
+    @embeds[name] = embed
+
+  addFormat: (name, format) ->
+    format = Formatter.formats[name.toUpperCase()] unless _.isObject(format)
+    @formats[name] = format
 
   appendLine: (lineNode) ->
     return this.insertLineBefore(lineNode, null)

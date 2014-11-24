@@ -4,7 +4,7 @@ Delta         = require('rich-text/lib/delta')
 EventEmitter2 = require('eventemitter2').EventEmitter2
 dom           = require('./lib/dom')
 Editor        = require('./core/editor')
-Format        = require('./core/format')
+Formatter     = require('./core/formatter')
 Range         = require('./lib/range')
 
 
@@ -12,11 +12,16 @@ class Quill extends EventEmitter2
   @version: pkg.version
   @editors: []
 
+  @embeds: []
+  @formats: []
   @modules: []
   @themes: []
 
   @DEFAULTS:
-    formats: ['align', 'bold', 'italic', 'strike', 'underline', 'color', 'background', 'font', 'size', 'link', 'image', 'bullet', 'list']
+    embeds:
+      { 'image' }
+    formats:
+      { 'align', 'bold', 'italic', 'strike', 'underline', 'color', 'background', 'font', 'size', 'link', 'bullet', 'list' }
     modules:
       'keyboard': true
       'paste-manager': true
@@ -34,6 +39,14 @@ class Quill extends EventEmitter2
     TEXT_CHANGE      : 'text-change'
 
   @sources: Editor.sources
+
+  @registerEmbed: (name, embed) ->
+    console.warn("Overwriting #{name} module") if Quill.formats[name]?
+    Quill.modules[name] = module
+
+  @registerFormat: (name, format) ->
+    console.warn("Overwriting #{name} module") if Quill.formats[name]?
+    Quill.modules[name] = module
 
   @registerModule: (name, module) ->
     console.warn("Overwriting #{name} module") if Quill.modules[name]?
@@ -90,6 +103,9 @@ class Quill extends EventEmitter2
     @container.insertBefore(container, refNode)
     return container
 
+  addEmbed: (name, embed) ->
+    @editor.doc.addEmbed(name, embed)
+
   addFormat: (name, format) ->
     @editor.doc.addFormat(name, format)
 
@@ -127,7 +143,7 @@ class Quill extends EventEmitter2
     formats = _.reduce(formats, (formats, value, name) =>
       format = @editor.doc.formats[name]
       # TODO warn if no format
-      formats[name] = null unless value and value != format.config.default     # false will be composed and kept in attributes
+      formats[name] = null unless value and value != format.default     # false will be composed and kept in attributes
       return formats
     , formats)
     delta = new Delta().retain(start).retain(end - start, formats)
@@ -180,10 +196,10 @@ class Quill extends EventEmitter2
     return unless format?     # TODO warn
     range = this.getSelection()
     return unless range?.isCollapsed()
-    if format.isType(Format.types.LINE)
+    if format.type == Formatter.types.LINE
       this.formatLine(range, name, value, Quill.sources.USER)
     else
-      format.prepare(value)
+      Formatter.prepare(format, value)
 
   setContents: (delta, source = Quill.sources.API) ->
     if Array.isArray(delta)

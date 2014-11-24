@@ -1,6 +1,5 @@
 _          = require('lodash')
 dom        = require('../lib/dom')
-Format     = require('./format')
 LinkedList = require('../lib/linked-list')
 
 

@@ -4,7 +4,7 @@ Quill.Delta = require('rich-text/lib/delta')
 
 Quill.Document   = require('../src/core/document')
 Quill.Editor     = require('../src/core/editor')
-Quill.Format     = require('../src/core/format')
+Quill.Formatter  = require('../src/core/formatter')
 Quill.Leaf       = require('../src/core/leaf')
 Quill.Line       = require('../src/core/line')
 Quill.Selection  = require('../src/core/selection')

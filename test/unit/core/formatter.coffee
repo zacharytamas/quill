@@ -1,4 +1,4 @@
-describe('Format', ->
+describe('Formatter', ->
   beforeEach( ->
     resetContainer()
     @container = $('#test-container').html('').get(0)

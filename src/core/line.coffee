@@ -1,7 +1,7 @@
 _          = require('lodash')
 Delta      = require('rich-text/lib/delta')
 dom        = require('../lib/dom')
-Format     = require('./format')
+Formatter  = require('./formatter')
 Leaf       = require('./leaf')
 Line       = require('./line')
 LinkedList = require('../lib/linked-list')
@@ -26,7 +26,7 @@ class Line extends LinkedList.Node
       # TODO: optimize
       _.each(@doc.formats, (format, name) ->
         # format.value() also checks match() but existing bug in tandem-core requires check anyways
-        nodeFormats[name] = format.value(node) if !format.isType(Format.types.LINE) and format.match(node)
+        nodeFormats[name] = Formatter.value(format, node) if format.type != Formatter.types.LINE and Formatter.match(format, node)
       )
       if Leaf.isLeafNode(node)
         @leaves.append(new Leaf(node, nodeFormats))
@@ -73,13 +73,13 @@ class Line extends LinkedList.Node
       format = @doc.formats[name]
       return unless format?
       # TODO reassigning @node might be dangerous...
-      if format.isType(Format.types.LINE)
-        if format.config.exclude and @formats[format.config.exclude]
-          excludeFormat = @doc.formats[format.config.exclude]
+      if format.type == Formatter.types.LINE
+        if format.exclude and @formats[format.exclude]
+          excludeFormat = @doc.formats[format.exclude]
           if excludeFormat?
-            @node = excludeFormat.remove(@node)
-            delete @formats[format.config.exclude]
-        @node = format.add(@node, value)
+            @node = Formatter.remove(excludeFormat, @node)
+            delete @formats[format.exclude]
+        @node = Formatter.add(format, @node, value)
       if value
         @formats[name] = value
       else
@@ -90,7 +90,7 @@ class Line extends LinkedList.Node
   formatText: (offset, length, name, value) ->
     [leaf, leafOffset] = this.findLeafAt(offset)
     format = @doc.formats[name]
-    return unless format? and format.config.type != Format.types.LINE
+    return unless format? and format.type != Formatter.types.LINE
     while leaf? and length > 0
       nextLeaf = leaf.next
       # Make sure we need to change leaf format
@@ -99,14 +99,14 @@ class Line extends LinkedList.Node
         # Identify node to modify
         if leaf.formats[name]?
           dom(targetNode).splitAncestors(@node)
-          while !format.match(targetNode)
+          while !Formatter.match(format, targetNode)
             targetNode = targetNode.parentNode
         # Isolate target node
         if leafOffset > 0
           [leftNode, targetNode] = dom(targetNode).split(leafOffset)
         if leaf.length > leafOffset + length  # leaf.length does not update with split()
           [targetNode, rightNode] = dom(targetNode).split(length)
-        format.add(targetNode, value)
+        Formatter.add(format, targetNode, value)
       length -= leaf.length - leafOffset
       leafOffset = 0
       leaf = nextLeaf
@@ -122,7 +122,7 @@ class Line extends LinkedList.Node
     else
       node = _.reduce(formats, (node, value, name) =>
         format = @doc.formats[name]
-        node = format.add(node, value) if format?
+        node = Formatter.add(format, node, value) if format?
         return node
       , document.createTextNode(text))
       [prevNode, nextNode] = dom(leaf.node).split(leafOffset)
@@ -145,9 +145,9 @@ class Line extends LinkedList.Node
       @node.appendChild(document.createElement(dom.DEFAULT_BREAK_TAG))
     @leaves = new LinkedList()
     @formats = _.reduce(@doc.formats, (formats, format, name) =>
-      if format.isType(Format.types.LINE)
-        if format.match(@node)
-          formats[name] = format.value(@node)
+      if format.type == Formatter.types.LINE
+        if Formatter.match(format, @node)
+          formats[name] = Formatter.value(format, @node)
         else
           delete formats[name]
       return formats
