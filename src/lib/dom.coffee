@@ -231,7 +231,6 @@ class Wrapper
       switch @node.nodeType
         when dom.ELEMENT_NODE
           return "" if @node.tagName == dom.DEFAULT_BREAK_TAG
-          return dom.EMBED_TEXT if dom.EMBED_TAGS[@node.tagName]?
           return @node.textContent if @node.textContent?
           return ""
         when dom.TEXT_NODE then return @node.data or ""
@@ -344,7 +343,6 @@ dom = _.extend(dom,
   DEFAULT_BLOCK_TAG: 'DIV'
   DEFAULT_BREAK_TAG: 'BR'
   DEFAULT_INLINE_TAG: 'SPAN'
-  EMBED_TEXT: '!' # No reason we picked ! besides it being one character (so delta cannot split it up)
 
   FONT_SIZES:
     '10px': 1
@@ -370,7 +368,6 @@ dom = _.extend(dom,
     'ADDRESS'
     'ARTICLE'
     'ASIDE'
-    'AUDIO'
     'BLOCKQUOTE'
     'CANVAS'
     'DD'
@@ -397,11 +394,12 @@ dom = _.extend(dom,
     'THEAD'
     'TR'
     'UL'
-    'VIDEO'
   }
 
   EMBED_TAGS: {
+    'AUDIO'
     'IMG'
+    'VIDEO'
   }
 
   LINE_TAGS: {

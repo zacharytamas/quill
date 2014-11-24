@@ -1,6 +1,7 @@
 _          = require('lodash')
 Delta      = require('rich-text/lib/delta')
 dom        = require('../lib/dom')
+Embedder   = require('./embedder')
 Formatter  = require('./formatter')
 Leaf       = require('./leaf')
 Line       = require('./line')
@@ -110,6 +111,16 @@ class Line extends LinkedList.Node
       length -= leaf.length - leafOffset
       leafOffset = 0
       leaf = nextLeaf
+    this.rebuild()
+
+  insertEmbed: (offset, type, value) ->
+    [leaf, leafOffset] = this.findLeafAt(offset)
+    [prevNode, nextNode] = dom(leaf.node).split(leafOffset)
+    nextNode = dom(nextNode).splitAncestors(@node).get() if nextNode
+    embed = @doc.embeds[type]
+    return unless embed?
+    node = Embedder.create(embed, value)
+    @node.insertBefore(node, nextNode)
     this.rebuild()
 
   insertText: (offset, text, formats = {}) ->

@@ -37,13 +37,9 @@ class Editor
       delta = this._trackDelta( =>
         index = 0
         _.each(delta.ops, (op) =>
-          if _.isString(op.insert)
+          if _.isString(op.insert) or _.isNumber(op.insert)
             this._insertAt(index, op.insert, op.attributes)
-            index += op.insert.length;
-          else if _.isNumber(op.insert)
-            # TODO embed needs native insert
-            this._insertAt(index, dom.EMBED_TEXT, op.attributes)
-            index += 1;
+            index += op.insert.length or 1;
           else if _.isNumber(op.delete)
             this._deleteAt(index, op.delete)
           else if _.isNumber(op.retain)
@@ -134,29 +130,33 @@ class Editor
         line = line.next
     )
 
-  _insertAt: (index, text, formatting = {}) ->
+  _insertAt: (index, text, attributes = {}) ->
     @selection.shiftAfter(index, text.length, =>
-      text = text.replace(/\r\n?/g, '\n')
-      lineTexts = text.split('\n')
       [line, offset] = @doc.findLineAt(index)
-      _.each(lineTexts, (lineText, i) =>
-        if !line? or line.length <= offset    # End of document
-          if i < lineTexts.length - 1 or lineText.length > 0
-            line = @doc.appendLine(document.createElement(dom.DEFAULT_BLOCK_TAG))
-            offset = 0
-            line.insertText(offset, lineText, formatting)
-            line.format(formatting)
-            nextLine = null
-        else
-          line.insertText(offset, lineText, formatting)
-          if i < lineTexts.length - 1       # Are there more lines to insert?
-            nextLine = @doc.splitLine(line, offset + lineText.length)
-            _.each(_.defaults({}, formatting, line.formats), (value, format) ->
-              line.format(format, formatting[format])
-            )
-            offset = 0
-        line = nextLine
-      )
+      if _.isString(text)
+        text = text.replace(/\r\n?/g, '\n')
+        lineTexts = text.split('\n')
+        _.each(lineTexts, (lineText, i) =>
+          if !line? or line.length <= offset    # End of document
+            if i < lineTexts.length - 1 or lineText.length > 0
+              line = @doc.appendLine(document.createElement(dom.DEFAULT_BLOCK_TAG))
+              offset = 0
+              line.insertText(offset, lineText, attributes)
+              line.format(attributes)
+              nextLine = null
+          else
+            line.insertText(offset, lineText, attributes)
+            if i < lineTexts.length - 1       # Are there more lines to insert?
+              nextLine = @doc.splitLine(line, offset + lineText.length)
+              _.each(_.defaults({}, attributes, line.formats), (value, format) ->
+                line.format(format, attributes[format])
+              )
+              offset = 0
+          line = nextLine
+        )
+      else
+        # TODO convert integer into name
+        line.insertEmbed(offset, 'image', attributes['image'])
     )
 
   _trackDelta: (fn) ->

@@ -67,7 +67,6 @@ Formatter =
       parentTag: 'OL'
       tag: 'LI'
 
-
   add: (format, node, value) ->
     return this.remove(format, node) unless value
     return node if this.value(format, node) == value
@@ -143,7 +142,6 @@ Formatter =
         node = dom(node).switchTag(dom.DEFAULT_BLOCK_TAG)
       else
         node = dom(node).switchTag(dom.DEFAULT_INLINE_TAG)
-        dom(node).text(dom.EMBED_TEXT) if dom.EMBED_TAGS[format.tag]?   # TODO is this desireable?
     if _.isString(format.parentTag)
       dom(node.parentNode).unwrap()
     if node.tagName == dom.DEFAULT_INLINE_TAG and !node.hasAttributes()

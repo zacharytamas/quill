@@ -177,7 +177,10 @@ class Quill extends EventEmitter2
     ).join('')
 
   insertEmbed: (index, type, url, source) ->
-    this.insertText(index, dom.EMBED_TEXT, type, url, source)
+    attributes = {}
+    attributes[type] = url
+    delta = new Delta().retain(index).insert(1, attributes)
+    @editor.applyDelta(delta, source)
 
   insertText: (index, text, name, value, source) ->
     [index, end, formats, source] = this._buildParams(index, 0, name, value, source)
