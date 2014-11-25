@@ -1,6 +1,6 @@
 {
   "name": "quill",
-  "version": "0.19.5",
+  "version": "0.19.6",
   "description": "Cross browser rich text editor",
   "author": "Jason Chen <jhchen7@gmail.com>",
   "homepage": "http://quilljs.com",
@@ -69,8 +69,8 @@
     "url": "https://github.com/quilljs/quill/issues"
   },
   "scripts": {
-    "prepublish": "grunt coffee:quill",
-    "postpublish": "grunt clean:coffee",
+    "prepublish": "grunt dist",
+    "postpublish": "grunt clean:all",
     "test": "grunt test"
   },
   "keywords": [
