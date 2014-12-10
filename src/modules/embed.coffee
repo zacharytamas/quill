@@ -3,6 +3,9 @@ _     = Quill.require('lodash')
 
 
 Embed =
+  mappings:
+    IMAGE: 1
+
   embeds:
     IMAGE:
       tag: 'IMG'
@@ -14,7 +17,7 @@ Embed =
 
 
 _.each(Embed.embeds, (embed, name) ->
-  Quill.registerEmbed(name.toLowerCase(), embed)
+  Quill.registerEmbed(name.toLowerCase(), embed, Embed.mappings[name])
 )
 
 

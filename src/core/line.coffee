@@ -39,7 +39,7 @@ class Line extends LinkedList.Node
         this.buildLeaves(node, nodeFormats)
     )
 
-  deleteText: (offset, length) ->
+  deleteAt: (offset, length) ->
     return unless length > 0
     [leaf, offset] = this.findLeafAt(offset)
     while leaf? and length > 0
@@ -68,82 +68,65 @@ class Line extends LinkedList.Node
       leaf = leaf.next
     return [@leaves.last, offset - @leaves.last.length]   # Should never occur unless length calculation is off
 
-  format: (name, value) ->
-    if _.isObject(name)
-      formats = name
-    else
-      formats = {}
-      formats[name] = value
-    _.each(formats, (value, name) =>
-      format = @doc.formats[name]
-      return unless format?
-      # TODO reassigning @node might be dangerous...
+  format: (format, name, value) ->
+    return if (line.formats[name] == value) or (!value and !line.formats[name]?)
+    if value
       if format.type == Formatter.types.LINE
-        if format.exclude and @formats[format.exclude]
-          excludeFormat = @doc.formats[format.exclude]
-          if excludeFormat?
-            @node = Formatter.remove(excludeFormat, @node)
-            delete @formats[format.exclude]
         @node = Formatter.add(format, @node, value)
-      if value
-        @formats[name] = value
       else
-        delete @formats[name]
-    )
-    this.resetContent()
+        # TODO add indicator to DOM
+        todo = true
+      @formats[name] = value
+    else
+      @node = Formatter.remove(format, @node) if format.type == Formatter.types.LINE
+      delete @formats[format.exclude]
 
-  formatText: (offset, length, name, value) ->
+  formatAt: (offset, length, format, name, value) ->
+    return if format.type == Formatter.types.LINE
     [leaf, leafOffset] = this.findLeafAt(offset)
-    format = @doc.formats[name]
-    return unless format? and format.type != Formatter.types.LINE
     while leaf? and length > 0
       nextLeaf = leaf.next
       # Make sure we need to change leaf format
       if (value and leaf.formats[name] != value) or (!value and leaf.formats[name]?)
         targetNode = leaf.node
+        dom(targetNode).splitAncestors(@node)
         # Identify node to modify
         if leaf.formats[name]?
-          dom(targetNode).splitAncestors(@node)
           while !Formatter.match(format, targetNode)
+            targetNode = targetNode.parentNode
+        else
+          largest = 0
+          targetFormat = _.reduce(leaf.formats, (targetFormat, value, targetName) ->
+            formatOrder = @doc.attributes[targetName][1]
+            if largest < formatOrder and formatOrder < @doc.attributes[name]
+              targetFormat = @doc.attributes[targetName][0]
+              largest = formatOrder
+            return targetFormat
+          , null)
+          while targetNode.parentNode != @node and targetFormat? and !Formatter.match(targetFormat, targetNode)
             targetNode = targetNode.parentNode
         # Isolate target node
         if leafOffset > 0
           [leftNode, targetNode] = dom(targetNode).split(leafOffset)
         if leaf.length > leafOffset + length  # leaf.length does not update with split()
           [targetNode, rightNode] = dom(targetNode).split(length)
-        Formatter.add(format, targetNode, value)
+        if leaf.formats[name]?
+          Formatter.remove(format, targetNode)
+        else
+          Formatter.add(format, targetNode, value)
       length -= leaf.length - leafOffset
       leafOffset = 0
       leaf = nextLeaf
     this.rebuild()
 
-  insertEmbed: (offset, type, value) ->
+  insertAt: (offset, insert, value) ->
+    return unless text.length > 0
     [leaf, leafOffset] = this.findLeafAt(offset)
     [prevNode, nextNode] = dom(leaf.node).split(leafOffset)
     nextNode = dom(nextNode).splitAncestors(@node).get() if nextNode
-    embed = @doc.embeds[type]
-    return unless embed?
-    node = Embedder.create(embed, value)
+    node = if _.isString(insert) then document.createTextNode(insert) else Embedder.create(insert, value)
     @node.insertBefore(node, nextNode)
     this.rebuild()
-
-  insertText: (offset, text, formats = {}) ->
-    return unless text.length > 0
-    [leaf, leafOffset] = this.findLeafAt(offset)
-    # offset > 0 for multicursor
-    if _.isEqual(leaf.formats, formats)
-      leaf.insertText(leafOffset, text)
-      this.resetContent()
-    else
-      node = _.reduce(formats, (node, value, name) =>
-        format = @doc.formats[name]
-        node = Formatter.add(format, node, value) if format?
-        return node
-      , document.createTextNode(text))
-      [prevNode, nextNode] = dom(leaf.node).split(leafOffset)
-      nextNode = dom(nextNode).splitAncestors(@node).get() if nextNode
-      @node.insertBefore(node, nextNode)
-      this.rebuild()
 
   optimize: ->
     Normalizer.optimizeLine(@node)

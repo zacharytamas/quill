@@ -9,60 +9,15 @@ Normalizer = require('../lib/normalizer')
 
 
 class Document
-  constructor: (@root, options = {}) ->
-    @embeds = {}
-    @formats = {}
-    options.embeds.forEach(this.addEmbed.bind(this))
-    options.formats.forEach(this.addFormat.bind(this))
+  constructor: (@root, options) ->
+    @attributes = {}
     this.setHTML(@root.innerHTML)
 
-  addEmbed: (name, embed) ->
-    @embeds[name] = embed
-
-  addFormat: (name, format) ->
-    @formats[name] = format
+  addAttribute: (name, attribute, order) ->
+    @attributes[name] = [attribute, order]
 
   appendLine: (lineNode) ->
     return this.insertLineBefore(lineNode, null)
-
-  insertAt: (index, value, attributes = {}) ->
-    [line, offset] = this.findLineAt(index)
-    if _.isString(insert)
-      text = insert.replace(/\r\n?/g, '\n')
-      lineTexts = text.split('\n')
-      _.each(lineTexts, (lineText, i) =>
-        if !line? or line.length <= offset    # End of document
-          if i < lineTexts.length - 1 or lineText.length > 0
-            line = this.appendLine(document.createElement(dom.DEFAULT_BLOCK_TAG))
-            offset = 0
-            line.insertText(offset, lineText, attributes)
-            line.format(attributes)
-            nextLine = null
-        else
-          line.insertText(offset, lineText, attributes)
-          if i < lineTexts.length - 1       # Are there more lines to insert?
-            nextLine = this.splitLine(line, offset + lineText.length)
-            _.each(_.defaults({}, attributes, line.formats), (value, format) ->
-              line.format(format, attributes[format])
-            )
-            offset = 0
-        line = nextLine
-      )
-    else
-      # TODO convert integer into name
-      line.insertEmbed(offset, 'image', attributes['image'])
-
-  formatAt: (start, end, attributes = {}) ->
-    [line, offset] = this.findLineAt(index)
-    while line? and length > 0
-      formatLength = Math.min(length, line.length - offset - 1)
-      line.formatText(offset, formatLength, name, value)
-      length -= formatLength
-      line.format(name, value) if length > 0
-      length -= 1
-      offset = 0
-      line = line.next
-
 
   deleteAt: (index, length) ->
     [firstLine, offset] = this.findLineAt(index)
@@ -74,12 +29,57 @@ class Document
       if offset == 0 and length >= curLine.length
         this.removeLine(curLine)
       else
-        curLine.deleteText(offset, deleteLength)
+        curLine.deleteAt(offset, deleteLength)
       length -= deleteLength
       curLine = nextLine
       offset = 0
     this.mergeLines(firstLine, firstLine.next) if mergeFirstLine and firstLine.next
 
+  formatAt: (index, length, attributes) ->
+    attributes = this.getAttributes()
+    [line, offset] = this.findLineAt(index)
+    while line? and length > 0
+      formatLength = Math.min(length, line.length - offset - 1)
+      _.each(attributes, (attribute, name) ->
+        line.formatAt(offset, formatLength, attribute...)
+        line.format(attribute...) if length - formatLength > 0
+      )
+      length -= (formatLength + 1)
+      offset = 0
+      line = line.next
+
+  insertAt: (index, insert, attributes) ->
+    [line, offset] = this.findLineAt(index)
+    if _.isNumber(insert)
+      line.insertAt(offset, @attributes[insert], attributes)
+    else if _.isString(insert)
+      attributes = this.getAttributes()
+      text = insert.replace(/\r\n?/g, '\n')
+      lineTexts = text.split('\n')
+      _.each(lineTexts, (lineText, i) =>
+        if !line? or line.length <= offset    # End of document, append
+          if i < lineTexts.length - 1 or lineText.length > 0
+            line = this.appendLine(document.createElement(dom.DEFAULT_BLOCK_TAG))
+            offset = 0
+            line.insertAt(offset, lineText)
+            _.each(attributes, (attribute, name) ->
+              line.formatAt(offset, lineText.length, attribute...)
+              line.format(attribute...)
+            )
+            nextLine = null
+        else
+          line.insertAt(offset, lineText)
+          _.each(attributes, (attribute, name) ->
+            line.formatAt(offset, lineText.length, attribute...)
+          )
+          if i < lineTexts.length - 1       # Are there more lines to insert?
+            nextLine = this.splitLine(line, offset + lineText.length)
+            _.each(_.defaults(attributes, this.getAttributes(line.formats)), (attribute, name) ->
+              line.format(attribute...)
+            )
+            offset = 0
+        line = nextLine
+      )
 
   findLeafAt: (index, inclusive) ->
     [line, offset] = this.findLineAt(index)
@@ -102,6 +102,12 @@ class Document
       index -= curLine.length
       curLine = curLine.next
     return [null, index]    # Should never occur unless length calculation is off
+
+  getAttributes: (attributes = {}) ->
+    return _.reduce(attributes, (attributes, value, name) =>
+      attributes[name] = [@attributes[name][0], name, value] if @attributes[name]?
+      return attributes
+    , {})
 
   getHTML: ->
     html = @root.innerHTML

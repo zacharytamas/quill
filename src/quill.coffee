@@ -12,10 +12,10 @@ class Quill extends EventEmitter2
   @version: pkg.version
   @editors: []
 
-  @embeds: []
-  @formats: []
-  @modules: []
-  @themes: []
+  @embeds: {}
+  @formats: {}
+  @modules: {}
+  @themes: {}
 
   @DEFAULTS:
     embeds: ['image']
@@ -38,13 +38,13 @@ class Quill extends EventEmitter2
 
   @sources: Editor.sources
 
-  @registerEmbed: (name, embed) ->
+  @registerEmbed: (name, embed, number) ->
     console.warn("Overwriting #{name} embed") if Quill.embeds[name]?
-    Quill.embeds[name] = embed
+    Quill.embeds[name] = [embed, number]
 
-  @registerFormat: (name, format) ->
+  @registerFormat: (name, format, order) ->
     console.warn("Overwriting #{name} format") if Quill.formats[name]?
-    Quill.formats[name] = format
+    Quill.formats[name] = [format, order]
 
   @registerModule: (name, module) ->
     console.warn("Overwriting #{name} module") if Quill.modules[name]?
@@ -80,6 +80,12 @@ class Quill extends EventEmitter2
     themeClass = Quill.themes[@options.theme]
     throw new Error("Cannot load #{@options.theme} theme. Are you sure you registered it?") unless themeClass?
     @theme = new themeClass(this, @options)
+    _.each(@options.formats, (name) =>
+      @editor.doc.addAttribute(name, Quill.formats[name]...)
+    )
+    _.each(@options.embeds, (name) =>
+      @editor.doc.addAttribute(name, Quill.embeds[name]...)
+    )
     _.each(@options.modules, (option, name) =>
       this.addModule(name, option)
     )
@@ -171,9 +177,11 @@ class Quill extends EventEmitter2
       return if _.isString(op.insert) then op.insert else ''
     ).join('')
 
-  insertEmbed: (index, type, url, source) ->
-    # TODO support more than just images
-    @editor.insertAt(index, 1, { image: url }, source)
+  insertEmbed: (index, type, value, source) ->
+    return unless Quill.embeds[type]?
+    attribute = {}
+    attribute[type] = value
+    @editor.insertAt(index, Quill.embeds[type][0], value, source)
 
   insertText: (index, text, name, value, source) ->
     [index, end, formats, source] = this._buildParams(index, 0, name, value, source)
