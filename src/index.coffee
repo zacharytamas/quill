@@ -1,4 +1,5 @@
 require('./modules/authorship')
+require('./modules/format')
 require('./modules/image-tooltip')
 require('./modules/keyboard')
 require('./modules/link-tooltip')

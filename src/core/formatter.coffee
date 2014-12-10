@@ -2,70 +2,11 @@ _   = require('lodash')
 dom = require('../lib/dom')
 
 
-types =
-  LINE: 'line'
-
 Formatter =
-  types: types
-
-  formats:
-    BOLD:
-      tag: 'B'
-      prepare: 'bold'
-
-    ITALIC:
-      tag: 'I'
-      prepare: 'italic'
-
-    UNDERLINE:
-      tag: 'U'
-      prepare: 'underline'
-
-    STRIKE:
-      tag: 'S'
-      prepare: 'strikeThrough'
-
-    COLOR:
-      style: 'color'
-      default: 'rgb(0, 0, 0)'
-      prepare: 'foreColor'
-
-    BACKGROUND:
-      style: 'backgroundColor'
-      default: 'rgb(255, 255, 255)'
-      prepare: 'backColor'
-
-    FONT:
-      style: 'fontFamily'
-      default: "'Helvetica', 'Arial', sans-serif"
-      prepare: 'fontName'
-
-    SIZE:
-      style: 'fontSize'
-      default: '13px'
-      prepare: (value) ->
-        document.execCommand('fontSize', false, dom.convertFontSize(value))
-
-    LINK:
-      tag: 'A'
-      attribute: 'href'
-
-    ALIGN:
-      type: types.LINE
-      style: 'textAlign'
-      default: 'left'
-
-    BULLET:
-      type: types.LINE
-      exclude: 'list'
-      parentTag: 'UL'
-      tag: 'LI'
-
-    LIST:
-      type: types.LINE
-      exclude: 'bullet'
-      parentTag: 'OL'
-      tag: 'LI'
+  types:
+    EMBED: 'embed'
+    INLINE: 'inline'
+    LINE: 'line'
 
   add: (format, node, value) ->
     return this.remove(format, node) unless value

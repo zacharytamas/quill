@@ -18,10 +18,8 @@ class Quill extends EventEmitter2
   @themes: []
 
   @DEFAULTS:
-    embeds:
-      { 'image' }
-    formats:
-      { 'align', 'bold', 'italic', 'strike', 'underline', 'color', 'background', 'font', 'size', 'link', 'bullet', 'list' }
+    embeds: ['image']
+    formats: ['align', 'bold', 'italic', 'strike', 'underline', 'color', 'background', 'font', 'size', 'link', 'bullet', 'list' ]
     modules:
       'keyboard': true
       'paste-manager': true
