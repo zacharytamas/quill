@@ -12,24 +12,74 @@ class Document
   constructor: (@root, options = {}) ->
     @embeds = {}
     @formats = {}
-    _.each(options.embeds, (embed, name) =>
-      this.addEmbed(name, embed)
-    )
-    _.each(options.formats, (format, name) =>
-      this.addFormat(name, format)
-    )
+    options.embeds.forEach(this.addEmbed.bind(this))
+    options.formats.forEach(this.addFormat.bind(this))
     this.setHTML(@root.innerHTML)
 
   addEmbed: (name, embed) ->
-    embed = Embedder.embeds[name.toUpperCase()] unless _.isObject(embed)
     @embeds[name] = embed
 
   addFormat: (name, format) ->
-    format = Formatter.formats[name.toUpperCase()] unless _.isObject(format)
     @formats[name] = format
 
   appendLine: (lineNode) ->
     return this.insertLineBefore(lineNode, null)
+
+  insertAt: (index, value, attributes = {}) ->
+    [line, offset] = this.findLineAt(index)
+    if _.isString(insert)
+      text = insert.replace(/\r\n?/g, '\n')
+      lineTexts = text.split('\n')
+      _.each(lineTexts, (lineText, i) =>
+        if !line? or line.length <= offset    # End of document
+          if i < lineTexts.length - 1 or lineText.length > 0
+            line = this.appendLine(document.createElement(dom.DEFAULT_BLOCK_TAG))
+            offset = 0
+            line.insertText(offset, lineText, attributes)
+            line.format(attributes)
+            nextLine = null
+        else
+          line.insertText(offset, lineText, attributes)
+          if i < lineTexts.length - 1       # Are there more lines to insert?
+            nextLine = this.splitLine(line, offset + lineText.length)
+            _.each(_.defaults({}, attributes, line.formats), (value, format) ->
+              line.format(format, attributes[format])
+            )
+            offset = 0
+        line = nextLine
+      )
+    else
+      # TODO convert integer into name
+      line.insertEmbed(offset, 'image', attributes['image'])
+
+  formatAt: (start, end, attributes = {}) ->
+    [line, offset] = this.findLineAt(index)
+    while line? and length > 0
+      formatLength = Math.min(length, line.length - offset - 1)
+      line.formatText(offset, formatLength, name, value)
+      length -= formatLength
+      line.format(name, value) if length > 0
+      length -= 1
+      offset = 0
+      line = line.next
+
+
+  deleteAt: (index, length) ->
+    [firstLine, offset] = this.findLineAt(index)
+    curLine = firstLine
+    mergeFirstLine = firstLine.length - offset <= length and offset > 0
+    while curLine? and length > 0
+      nextLine = curLine.next
+      deleteLength = Math.min(curLine.length - offset, length)
+      if offset == 0 and length >= curLine.length
+        this.removeLine(curLine)
+      else
+        curLine.deleteText(offset, deleteLength)
+      length -= deleteLength
+      curLine = nextLine
+      offset = 0
+    this.mergeLines(firstLine, firstLine.next) if mergeFirstLine and firstLine.next
+
 
   findLeafAt: (index, inclusive) ->
     [line, offset] = this.findLineAt(index)

@@ -1,5 +1,6 @@
 _         = require('lodash')
 dom       = require('../lib/dom')
+Delta     = require('rich-text/lib/delta')
 Document  = require('./document')
 Line      = require('./line')
 Selection = require('./selection')
@@ -36,19 +37,22 @@ class Editor
     if delta.ops.length > 0
       delta = this._trackDelta( =>
         index = 0
+        range = @selection.getRange()
         _.each(delta.ops, (op) =>
           if _.isString(op.insert) or _.isNumber(op.insert)
-            this._insertAt(index, op.insert, op.attributes)
-            index += op.insert.length or 1;
+            @doc.insertAt(index, op.insert, op.attributes)
+            length = op.insert.length or 1
+            range.shift(index, length)
+            index += length
           else if _.isNumber(op.delete)
-            this._deleteAt(index, op.delete)
+            @doc.deleteAt(index, op.delete)
+            range.shift(index, -1 * op.delete)
           else if _.isNumber(op.retain)
-            _.each(op.attributes, (value, name) =>
-              this._formatAt(index, op.retain, name, value)
-            )
+            @doc.formatAt(index, op.retain, op.attributes)
             index += op.retain
         )
-        @selection.shiftAfter(0, 0, _.bind(@doc.optimizeLines, @doc))
+        @doc.optimizeLines()
+        @selection.setRange(range, 'silent')
       )
       @delta = @doc.toDelta()
       @innerHTML = @root.innerHTML
@@ -65,11 +69,17 @@ class Editor
     source = Editor.sources.SILENT if delta
     @selection.update(source)
 
+  deleteAt: (start, end, source) ->
+    this.applyDelta(new Delta().retain(start).delete(end - start), source)
+
   focus: ->
     if @selection.range?
       @selection.setRange(@selection.range)
     else
       @root.focus()
+
+  formatAt: (start, end, attributes, source) ->
+    this.applyDelta(new Delta().retain(start).retain(end - start, attributes), source)
 
   getBounds: (index) ->
     this.checkUpdate()
@@ -98,66 +108,8 @@ class Editor
   getDelta: ->
     return @delta
 
-  _deleteAt: (index, length) ->
-    return if length <= 0
-    @selection.shiftAfter(index, -1 * length, =>
-      [firstLine, offset] = @doc.findLineAt(index)
-      curLine = firstLine
-      mergeFirstLine = firstLine.length - offset <= length and offset > 0
-      while curLine? and length > 0
-        nextLine = curLine.next
-        deleteLength = Math.min(curLine.length - offset, length)
-        if offset == 0 and length >= curLine.length
-          @doc.removeLine(curLine)
-        else
-          curLine.deleteText(offset, deleteLength)
-        length -= deleteLength
-        curLine = nextLine
-        offset = 0
-      @doc.mergeLines(firstLine, firstLine.next) if mergeFirstLine and firstLine.next
-    )
-
-  _formatAt: (index, length, name, value) ->
-    @selection.shiftAfter(index, 0, =>
-      [line, offset] = @doc.findLineAt(index)
-      while line? and length > 0
-        formatLength = Math.min(length, line.length - offset - 1)
-        line.formatText(offset, formatLength, name, value)
-        length -= formatLength
-        line.format(name, value) if length > 0
-        length -= 1
-        offset = 0
-        line = line.next
-    )
-
-  _insertAt: (index, insert, attributes = {}) ->
-    @selection.shiftAfter(index, insert.length or 1, =>
-      [line, offset] = @doc.findLineAt(index)
-      if _.isString(insert)
-        text = insert.replace(/\r\n?/g, '\n')
-        lineTexts = text.split('\n')
-        _.each(lineTexts, (lineText, i) =>
-          if !line? or line.length <= offset    # End of document
-            if i < lineTexts.length - 1 or lineText.length > 0
-              line = @doc.appendLine(document.createElement(dom.DEFAULT_BLOCK_TAG))
-              offset = 0
-              line.insertText(offset, lineText, attributes)
-              line.format(attributes)
-              nextLine = null
-          else
-            line.insertText(offset, lineText, attributes)
-            if i < lineTexts.length - 1       # Are there more lines to insert?
-              nextLine = @doc.splitLine(line, offset + lineText.length)
-              _.each(_.defaults({}, attributes, line.formats), (value, format) ->
-                line.format(format, attributes[format])
-              )
-              offset = 0
-          line = nextLine
-        )
-      else
-        # TODO convert integer into name
-        line.insertEmbed(offset, 'image', attributes['image'])
-    )
+  insertAt: (index, value, attributes) ->
+    this.applyDelta(new Delta().retain(index).insert(value, attributes), source)
 
   _trackDelta: (fn) ->
     fn()
@@ -170,7 +122,9 @@ class Editor
     return false if @innerHTML == @root.innerHTML
     delta = this._trackDelta( =>
       @selection.preserve(_.bind(@doc.rebuild, @doc))
-      @selection.shiftAfter(0, 0, _.bind(@doc.optimizeLines, @doc))
+      range = @selection.getRange()
+      @doc.optimizeLines()
+      @selection.setRange(range, 'silent')
     )
     @innerHTML = @root.innerHTML
     return if delta.ops.length > 0 then delta else false

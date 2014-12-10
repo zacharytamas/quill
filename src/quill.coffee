@@ -39,12 +39,12 @@ class Quill extends EventEmitter2
   @sources: Editor.sources
 
   @registerEmbed: (name, embed) ->
-    console.warn("Overwriting #{name} module") if Quill.formats[name]?
-    Quill.modules[name] = module
+    console.warn("Overwriting #{name} embed") if Quill.embeds[name]?
+    Quill.embeds[name] = embed
 
   @registerFormat: (name, format) ->
-    console.warn("Overwriting #{name} module") if Quill.formats[name]?
-    Quill.modules[name] = module
+    console.warn("Overwriting #{name} format") if Quill.formats[name]?
+    Quill.formats[name] = format
 
   @registerModule: (name, module) ->
     console.warn("Overwriting #{name} module") if Quill.modules[name]?
@@ -102,9 +102,13 @@ class Quill extends EventEmitter2
     return container
 
   addEmbed: (name, embed) ->
+    embed = Quill.embeds[name]
+    throw new Error("Cannot load #{name} embed. Are you sure you registered it?") unless embed?
     @editor.doc.addEmbed(name, embed)
 
   addFormat: (name, format) ->
+    format = Quill.formats[name]
+    throw new Error("Cannot load #{name} format. Are you sure you registered it?") unless format?
     @editor.doc.addFormat(name, format)
 
   addModule: (name, options) ->
@@ -119,8 +123,7 @@ class Quill extends EventEmitter2
   deleteText: (start, end, source = Quill.sources.API) ->
     [start, end, formats, source] = this._buildParams(start, end, {}, source)
     return unless end > start
-    delta = new Delta().retain(start).delete(end - start)
-    @editor.applyDelta(delta, source)
+    @editor.deleteAt(start, end, source)
 
   emit: (eventName, args...) ->
     super(Quill.events.PRE_EVENT, eventName, args...)
@@ -138,14 +141,8 @@ class Quill extends EventEmitter2
 
   formatText: (start, end, name, value, source) ->
     [start, end, formats, source] = this._buildParams(start, end, name, value, source)
-    formats = _.reduce(formats, (formats, value, name) =>
-      format = @editor.doc.formats[name]
-      # TODO warn if no format
-      formats[name] = null unless value and value != format.default     # false will be composed and kept in attributes
-      return formats
-    , formats)
-    delta = new Delta().retain(start).retain(end - start, formats)
-    @editor.applyDelta(delta, source)
+    return unless end > start
+    @editor.formatAt(start, end, formats, source)
 
   getBounds: (index) ->
     return @editor.getBounds(index)
@@ -175,16 +172,13 @@ class Quill extends EventEmitter2
     ).join('')
 
   insertEmbed: (index, type, url, source) ->
-    attributes = {}
-    attributes[type] = url
-    delta = new Delta().retain(index).insert(1, attributes)
-    @editor.applyDelta(delta, source)
+    # TODO support more than just images
+    @editor.insertAt(index, 1, { image: url }, source)
 
   insertText: (index, text, name, value, source) ->
     [index, end, formats, source] = this._buildParams(index, 0, name, value, source)
     return unless text.length > 0
-    delta = new Delta().retain(index).insert(text, formats)
-    @editor.applyDelta(delta, source)
+    @editor.insertAt(index, text, formats, source)
 
   onModuleLoad: (name, callback) ->
     if (@modules[name]) then return callback(@modules[name])
@@ -242,6 +236,8 @@ class Quill extends EventEmitter2
       formats[params[2]] = params[3]
       params.splice(2, 2, formats)
     params[3] ?= Quill.sources.API
+    params[0] = Math.min(0, Math.max(this.getLength(), params[0]))
+    params[1] = Math.min(params[0], Math.max(this.getLength(), params[1]))
     return params
 
 

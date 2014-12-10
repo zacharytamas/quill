@@ -54,13 +54,6 @@ class Selection
       this._setNativeRange(null)
     this.update(source)
 
-  shiftAfter: (index, length, fn) ->
-    range = this.getRange()
-    fn()
-    if range?
-      range.shift(index, length)
-      this.setRange(range, 'silent')
-
   update: (source) ->
     focus = this.checkFocus()
     range = this.getRange(true)
