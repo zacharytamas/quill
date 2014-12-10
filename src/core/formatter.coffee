@@ -4,8 +4,6 @@ dom = require('../lib/dom')
 
 Formatter =
   types:
-    EMBED: 'embed'
-    INLINE: 'inline'
     LINE: 'line'
 
   add: (format, node, value) ->

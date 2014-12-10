@@ -20,6 +20,7 @@ Quill.Lib =
 
 Quill.Module =
   Authorship    : require('../src/modules/authorship')
+  Embed         : require('../src/modules/embed')
   Format        : require('../src/modules/format')
   Keyboard      : require('../src/modules/keyboard')
   ImageTooltip  : require('../src/modules/image-tooltip')
