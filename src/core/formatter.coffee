@@ -1,10 +1,13 @@
 _   = require('lodash')
 dom = require('../lib/dom')
+OrderedHash = require('../lib/ordered-hash')
 
 
-Formatter =
-  types:
-    LINE: 'line'
+class Format
+  constructor: (@config) ->
+
+  create: (value) ->
+
 
   add: (format, node, value) ->
     return this.remove(format, node) unless value
@@ -99,6 +102,20 @@ Formatter =
     else if _.isString(format.tag)
       return true
     return undefined
+
+
+class Formatter extends OrderedHash
+  @types:
+    EMBED: 'embed'
+    LINE: 'line'
+
+  @Format: Format
+
+  check: (node) ->
+    return _.reduce(@hash, (formats, format, name) ->
+      formats.push(name) if format.match(node)
+      return formats
+    , [])
 
 
 module.exports = Formatter

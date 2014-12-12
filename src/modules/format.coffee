@@ -56,6 +56,14 @@ Format =
       match: (node) ->
         return node.parentNode?.tagName == 'OL'
 
+    IMAGE:
+      tag: 'IMG'
+      attribute:
+        src: null
+        alt: null
+        height: null
+        width: null
+
 
 _.each(Format.formats, (format, name) ->
   Quill.registerFormat(name.toLowerCase(), format)

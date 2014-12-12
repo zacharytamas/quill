@@ -7,6 +7,9 @@ Selection = require('./selection')
 
 
 class Editor
+  @embeds:
+    IMAGE: 1
+
   @sources:
     API    : 'api'
     SILENT : 'silent'
@@ -40,8 +43,14 @@ class Editor
         index = 0
         range = @selection.getRange()
         _.each(delta.ops, (op) =>
-          if _.isString(op.insert) or _.isNumber(op.insert)
-            @doc.insertAt(index, op.insert, op.attributes)
+          if op.insert?
+            if _.isString(op.insert)
+              insert = op.insert
+            else
+              embed = _.findKey(Editor.embeds, op.insert)
+              insert = @doc.formatter.get(embed.toLowerCase())
+              throw new Error("Embed with key #{op.insert} not found") unless insert?
+            @doc.insertAt(index, insert, op.attributes)
             length = op.insert.length or 1
             range.shift(index, length)
             index += length

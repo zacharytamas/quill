@@ -1,7 +1,6 @@
 _          = require('lodash')
 Delta      = require('rich-text/lib/delta')
 dom        = require('../lib/dom')
-Embedder   = require('./embedder')
 Formatter  = require('./formatter')
 Leaf       = require('./leaf')
 Line       = require('./line')
@@ -68,7 +67,7 @@ class Line extends LinkedList.Node
       leaf = leaf.next
     return [@leaves.last, offset - @leaves.last.length]   # Should never occur unless length calculation is off
 
-  format: (format, name, value) ->
+  format: (name, value) ->
     return if (line.formats[name] == value) or (!value and !line.formats[name]?)
     if value
       if format.type == Formatter.types.LINE
@@ -81,50 +80,59 @@ class Line extends LinkedList.Node
       @node = Formatter.remove(format, @node) if format.type == Formatter.types.LINE
       delete @formats[format.exclude]
 
-  formatAt: (offset, length, format, name, value) ->
+  formatAt: (offset, length, name, value) ->
     return if format.type == Formatter.types.LINE
     [leaf, leafOffset] = this.findLeafAt(offset)
     while leaf? and length > 0
       nextLeaf = leaf.next
       # Make sure we need to change leaf format
       if (value and leaf.formats[name] != value) or (!value and leaf.formats[name]?)
-        targetNode = leaf.node
-        dom(targetNode).splitAncestors(@node)
-        # Identify node to modify
+        leafNode = leaf.node
+        # Isolate node
+        [leafNode, rightNode] = dom(targetNode).split(leafOffset + length) if leaf.length > leafOffset + length
+        [leftNode, leafNode] = dom(targetNode).split(leafOffset) if leafOffset > 0
+        targetNode = leafNode
         if leaf.formats[name]?
-          while !Formatter.match(format, targetNode)
+          while !format.match(targetNode)
             targetNode = targetNode.parentNode
+          format.remove(targetNode)
         else
-          largest = 0
-          targetFormat = _.reduce(leaf.formats, (targetFormat, value, targetName) ->
-            formatOrder = @doc.attributes[targetName][1]
-            if largest < formatOrder and formatOrder < @doc.attributes[name]
-              targetFormat = @doc.attributes[targetName][0]
-              largest = formatOrder
-            return targetFormat
-          , null)
-          while targetNode.parentNode != @node and targetFormat? and !Formatter.match(targetFormat, targetNode)
-            targetNode = targetNode.parentNode
-        # Isolate target node
-        if leafOffset > 0
-          [leftNode, targetNode] = dom(targetNode).split(leafOffset)
-        if leaf.length > leafOffset + length  # leaf.length does not update with split()
-          [targetNode, rightNode] = dom(targetNode).split(length)
-        if leaf.formats[name]?
-          Formatter.remove(format, targetNode)
-        else
-          Formatter.add(format, targetNode, value)
+          while targetNode.parentNode != @node
+            formats = @formatter.check(targetNode)
+            if _.all(formats, (value, key) =>
+              @formatter.compare(name, key) <= 0
+            )
+              dom(leafNode.nextSibling).splitAncestors(targetNode.parentNode) if leafNode.nextSibling?
+              dom(leafNode).splitAncestors(targetNode.parentNode)
+              format.add(targetNode, value)
+              break
+            else if _.all(formats, (value, key) =>
+              @formatter.compare(name, key) >= 0
+            )
+              targetNode = targetNode.parentNode
+            else
+              formats = Object.keys(leaf.formats)
+              formats.push(name)
+              formats.sort(@formatter.compare)
+              dom(leafNode.nextSibling, true).splitAncestors(@node) if leafNode.nextSibling?
+              dom(leafNode, true).splitAncestors(@node)
+              while leafNode.parentNode != @node
+                dom(leafNode.parentNode).unwrap()
+              _.each(formats, (format) ->
+                value = if format == name then value else leaf.formats[name]
+                leafNode = format.add(leafNode, value)
+              )
+              break
       length -= leaf.length - leafOffset
       leafOffset = 0
       leaf = nextLeaf
     this.rebuild()
 
   insertAt: (offset, insert, value) ->
-    return unless text.length > 0
     [leaf, leafOffset] = this.findLeafAt(offset)
     [prevNode, nextNode] = dom(leaf.node).split(leafOffset)
     nextNode = dom(nextNode).splitAncestors(@node).get() if nextNode
-    node = if _.isString(insert) then document.createTextNode(insert) else Embedder.create(insert, value)
+    node = if _.isString(insert) then document.createTextNode(insert) else insert.create(value)
     @node.insertBefore(node, nextNode)
     this.rebuild()
 

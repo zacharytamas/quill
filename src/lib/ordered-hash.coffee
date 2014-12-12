@@ -3,6 +3,9 @@ class OrderedHash
     @keys = []
     @hash = {}
 
+  compare: (key1, key2) ->
+    return @keys.indexOf(key1) - @keys.indexOf(key2)
+
   forEach: (fn) ->
     @keys.forEach((key) =>
       fn(key, @hash[key])

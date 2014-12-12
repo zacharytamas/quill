@@ -1,7 +1,6 @@
 _          = require('lodash')
 Delta      = require('rich-text/lib/delta')
 dom        = require('../lib/dom')
-Embedder   = require('./embedder')
 Formatter  = require('./formatter')
 Line       = require('./line')
 LinkedList = require('../lib/linked-list')
@@ -10,11 +9,8 @@ Normalizer = require('../lib/normalizer')
 
 class Document
   constructor: (@root, options) ->
-    @attributes = {}
     this.setHTML(@root.innerHTML)
-
-  addAttribute: (name, attribute, order) ->
-    @attributes[name] = [attribute, order]
+    @formatter = new Formatter()
 
   appendLine: (lineNode) ->
     return this.insertLineBefore(lineNode, null)
@@ -36,13 +32,12 @@ class Document
     this.mergeLines(firstLine, firstLine.next) if mergeFirstLine and firstLine.next
 
   formatAt: (index, length, attributes) ->
-    attributes = this.getAttributes()
     [line, offset] = this.findLineAt(index)
     while line? and length > 0
       formatLength = Math.min(length, line.length - offset - 1)
       _.each(attributes, (attribute, name) ->
-        line.formatAt(offset, formatLength, attribute...)
-        line.format(attribute...) if length - formatLength > 0
+        line.formatAt(offset, formatLength, )
+        line.format(name, attribute) if length - formatLength > 0
       )
       length -= (formatLength + 1)
       offset = 0
@@ -50,10 +45,9 @@ class Document
 
   insertAt: (index, insert, attributes) ->
     [line, offset] = this.findLineAt(index)
-    if _.isNumber(insert)
-      line.insertAt(offset, @attributes[insert], attributes)
+    if _.isObject(insert)
+      line.insertAt(offset, insert, attributes)
     else if _.isString(insert)
-      attributes = this.getAttributes()
       text = insert.replace(/\r\n?/g, '\n')
       lineTexts = text.split('\n')
       _.each(lineTexts, (lineText, i) =>
@@ -63,19 +57,19 @@ class Document
             offset = 0
             line.insertAt(offset, lineText)
             _.each(attributes, (attribute, name) ->
-              line.formatAt(offset, lineText.length, attribute...)
-              line.format(attribute...)
+              line.formatAt(offset, lineText.length, name, attribute)
+              line.format(name, attribute)
             )
             nextLine = null
         else
           line.insertAt(offset, lineText)
           _.each(attributes, (attribute, name) ->
-            line.formatAt(offset, lineText.length, attribute...)
+            line.formatAt(offset, lineText.length, name, attribute)
           )
           if i < lineTexts.length - 1       # Are there more lines to insert?
             nextLine = this.splitLine(line, offset + lineText.length)
-            _.each(_.defaults(attributes, this.getAttributes(line.formats)), (attribute, name) ->
-              line.format(attribute...)
+            _.each(_.defaults({}, line.formats, attributes), (attribute, name) ->
+              line.format(name, attribute)
             )
             offset = 0
         line = nextLine

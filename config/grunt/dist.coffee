@@ -77,7 +77,7 @@ module.exports = (grunt) ->
         'difference', 'intersection', 'last'
         'all', 'each', 'invoke', 'map', 'reduce'
         'bind', 'defer', 'partial'
-        'clone', 'extend', 'defaults', 'omit', 'values'
+        'clone', 'defaults', 'extend', 'findKey', 'omit', 'values'
         'isElement', 'isEqual', 'isNumber', 'isObject', 'isString'
         'uniqueId'
       ]
