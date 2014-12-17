@@ -36,7 +36,7 @@ class Document
     while line? and length > 0
       formatLength = Math.min(length, line.length - offset - 1)
       _.each(attributes, (attribute, name) ->
-        line.formatAt(offset, formatLength, )
+        line.formatAt(offset, formatLength, name, attribute)
         line.format(name, attribute) if length - formatLength > 0
       )
       length -= (formatLength + 1)

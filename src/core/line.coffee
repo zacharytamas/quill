@@ -81,6 +81,7 @@ class Line extends LinkedList.Node
       delete @formats[format.exclude]
 
   formatAt: (offset, length, name, value) ->
+    format = @doc.formatter.get(name)
     return if format.type == Formatter.types.LINE
     [leaf, leafOffset] = this.findLeafAt(offset)
     while leaf? and length > 0

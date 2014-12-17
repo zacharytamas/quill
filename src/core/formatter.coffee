@@ -6,9 +6,6 @@ OrderedHash = require('../lib/ordered-hash')
 class Format
   constructor: (@config) ->
 
-  create: (value) ->
-
-
   add: (format, node, value) ->
     return this.remove(format, node) unless value
     return node if this.value(format, node) == value
@@ -43,6 +40,8 @@ class Format
       if _.isString(format.class)
         dom(node).addClass(format.class + value)
     return node
+
+  create: (value) ->
 
   match: (format, node) ->
     return false unless dom(node).isElement()

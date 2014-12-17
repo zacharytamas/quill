@@ -38,8 +38,8 @@ class Quill extends EventEmitter2
   @sources: Editor.sources
 
   @registerFormat: (name, config) ->
-    console.warn("Overwriting #{name} format") if Quill.formats[name]?
-    Formatter.set(name, config)
+    console.warn("Overwriting #{name} format") if Quill.formats.get(name)?
+    Quill.formats.set(name, config)
 
   @registerModule: (name, module) ->
     console.warn("Overwriting #{name} module") if Quill.modules[name]?
@@ -75,7 +75,7 @@ class Quill extends EventEmitter2
     themeClass = Quill.themes[@options.theme]
     throw new Error("Cannot load #{@options.theme} theme. Are you sure you registered it?") unless themeClass?
     @theme = new themeClass(this, @options)
-    _.each(@options.formats, this.addFormat)
+    _.each(@options.formats, _.bind(this.addFormat, this))
     _.each(@options.modules, (option, name) =>
       this.addModule(name, option)
     )
@@ -101,7 +101,8 @@ class Quill extends EventEmitter2
     format = Quill.formats.get(name)
     throw new Error("Cannot load #{name} format. Are you sure you registered it?") unless format?
     @editor.doc.formatter.set(name, format)
-    @editor.doc.formatter.keys.sort(Quill.formats.compare)  # TODO Suboptimal performance and somewhat hacky
+    # TODO Suboptimal performance and somewhat hacky
+    @editor.doc.formatter.keys.sort(_.bind(Quill.formats.compare, Quill.formats))
 
   addModule: (name, options) ->
     moduleClass = Quill.modules[name]
@@ -181,13 +182,13 @@ class Quill extends EventEmitter2
     )
 
   prepareFormat: (name, value) ->
-    format = @editor.doc.formats[name]
-    return unless format?     # TODO warn
     range = this.getSelection()
     return unless range?.isCollapsed()
     if format.type == Formatter.types.LINE
       this.formatLine(range, name, value, Quill.sources.USER)
     else
+      format = @editor.doc.formats[name]
+      return unless format?     # TODO warn
       Formatter.prepare(format, value)
 
   setContents: (delta, source = Quill.sources.API) ->
@@ -231,7 +232,8 @@ class Quill extends EventEmitter2
       params.splice(2, 2, formats)
     params[3] ?= Quill.sources.API
     params[0] = Math.min(0, Math.max(this.getLength(), params[0]))
-    params[1] = Math.min(params[0], Math.max(this.getLength(), params[1]))
+    # TODO max check invalid because user may have typed and we have not checkUpdate
+    # params[1] = Math.min(params[0], Math.max(this.getLength(), params[1]))
     return params
 
 
