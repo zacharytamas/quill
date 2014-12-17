@@ -74,6 +74,11 @@ class Wrapper
   isTextNode: ->
     return @node?.nodeType == dom.TEXT_NODE
 
+  isolate: (root) ->
+    dom(@node.nextSibling).splitBefore(root) if @node.nextSibling?
+    this.splitBefore(root)
+    return this
+
   length: ->
     return 0 unless @node?
     return 1 if dom.EMBED_TAGS[@node.tagName]?
@@ -154,8 +159,8 @@ class Wrapper
     @node = newNode
     return newNode
 
-  # @node is node after split point, root is parent of eldest node we want split (root will not be split)
-  splitAncestors: (root, force = false) ->
+  # root is parent of eldest node we want split (root will not be split)
+  splitBefore: (root, force = false) ->
     return this if @node == root or @node.parentNode == root
     if @node.previousSibling? or force
       parentNode = @node.parentNode
@@ -166,9 +171,9 @@ class Wrapper
         nextNode = refNode.nextSibling
         parentClone.appendChild(refNode)
         refNode = nextNode
-      return dom(parentClone).splitAncestors(root)
+      return dom(parentClone).splitBefore(root)
     else
-      return dom(@node.parentNode).splitAncestors(root)
+      return dom(@node.parentNode).splitBefore(root)
 
   split: (offset, force = false) ->
     # Check if split necessary

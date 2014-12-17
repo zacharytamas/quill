@@ -78,8 +78,8 @@ class Format
     if _.isString(format.tag)
       if format.type == Formatter.types.LINE
         if _.isString(format.parentTag)
-          dom(node).splitAncestors(node.parentNode.parentNode) if node.previousSibling?
-          dom(node.nextSibling).splitAncestors(node.parentNode.parentNode) if node.nextSibling?
+          dom(node).splitBefore(node.parentNode.parentNode) if node.previousSibling?
+          dom(node.nextSibling).splitBefore(node.parentNode.parentNode) if node.nextSibling?
         node = dom(node).switchTag(dom.DEFAULT_BLOCK_TAG)
       else
         node = dom(node).switchTag(dom.DEFAULT_INLINE_TAG)

@@ -103,8 +103,8 @@ class Line extends LinkedList.Node
             if _.all(formats, (value, key) =>
               @formatter.compare(name, key) <= 0
             )
-              dom(leafNode.nextSibling).splitAncestors(targetNode.parentNode) if leafNode.nextSibling?
-              dom(leafNode).splitAncestors(targetNode.parentNode)
+              dom(leafNode.nextSibling).splitBefore(targetNode.parentNode) if leafNode.nextSibling?
+              dom(leafNode).splitBefore(targetNode.parentNode)
               format.add(targetNode, value)
               break
             else if _.all(formats, (value, key) =>
@@ -115,8 +115,8 @@ class Line extends LinkedList.Node
               formats = Object.keys(leaf.formats)
               formats.push(name)
               formats.sort(@formatter.compare)
-              dom(leafNode.nextSibling, true).splitAncestors(@node) if leafNode.nextSibling?
-              dom(leafNode, true).splitAncestors(@node)
+              dom(leafNode.nextSibling, true).splitBefore(@node) if leafNode.nextSibling?
+              dom(leafNode, true).splitBefore(@node)
               while leafNode.parentNode != @node
                 dom(leafNode.parentNode).unwrap()
               _.each(formats, (format) ->
@@ -132,7 +132,7 @@ class Line extends LinkedList.Node
   insertAt: (offset, insert, value) ->
     [leaf, leafOffset] = this.findLeafAt(offset)
     [prevNode, nextNode] = dom(leaf.node).split(leafOffset)
-    nextNode = dom(nextNode).splitAncestors(@node).get() if nextNode
+    nextNode = dom(nextNode).splitBefore(@node).get() if nextNode
     node = if _.isString(insert) then document.createTextNode(insert) else insert.create(value)
     @node.insertBefore(node, nextNode)
     this.rebuild()

@@ -44,7 +44,7 @@ Normalizer =
     breaks = _.map(lineNode.querySelectorAll(dom.DEFAULT_BREAK_TAG))
     _.each(breaks, (br) =>
       if br.nextSibling? and (!dom.isIE(10) or br.previousSibling?)
-        dom(br.nextSibling).splitAncestors(lineNode.parentNode)
+        dom(br.nextSibling).splitBefore(lineNode.parentNode)
     )
     return lineNode
 
@@ -96,9 +96,9 @@ Normalizer =
     while curNode?
       if dom.BLOCK_TAGS[curNode.tagName]? and curNode.tagName != 'LI'
         if curNode.previousSibling?
-          dom(curNode).splitAncestors(lineNode.parentNode)
+          dom(curNode).splitBefore(lineNode.parentNode)
         if curNode.nextSibling?
-          dom(curNode.nextSibling).splitAncestors(lineNode.parentNode)
+          dom(curNode.nextSibling).splitBefore(lineNode.parentNode)
         if !dom.LIST_TAGS[curNode.tagName]? or !curNode.firstChild
           dom(curNode).unwrap()
           Normalizer.pullBlocks(lineNode)
