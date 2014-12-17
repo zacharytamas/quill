@@ -10,7 +10,7 @@ describe('Editor', ->
     @createEditor({ formats: Quill.DEFAULTS.formats })
   )
 
-  describe('_deleteAt()', ->
+  describe('deleteAt()', ->
     tests =
       'part of line':
         initial:  ['<div>0123</div>']
@@ -52,14 +52,14 @@ describe('Editor', ->
     _.each(tests, (test, name) ->
       it(name, ->
         @editor.doc.setHTML(test.initial.join(''))
-        @editor._deleteAt(test.index, test.length)
+        @editor.deleteAt(test.index, test.length)
         @editor.doc.optimizeLines()
         expect(@editor.root).toEqualHTML(test.expected.join(''), true)
       )
     )
   )
 
-  describe('_formatAt()', ->
+  describe('formatAt()', ->
     tests =
       'part of line':
         initial:  ['<div>0123</div>']
@@ -89,14 +89,14 @@ describe('Editor', ->
     _.each(tests, (test, name) ->
       it(name, ->
         @editor.doc.setHTML(test.initial.join(''))
-        @editor._formatAt(test.index, test.length, test.name, test.value)
+        @editor.formatAt(test.index, test.length, test.name, test.value)
         @editor.doc.optimizeLines()
         expect(@editor.doc.toDelta()).toEqualDelta(test.expected)
       )
     )
   )
 
-  describe('_insertAt()', ->
+  describe('insertAt()', ->
     describe('empty', ->
       tests =
         'text':
@@ -117,14 +117,14 @@ describe('Editor', ->
 
       _.each(tests, (test, name) ->
         it(name, ->
-          @editor._insertAt(0, test.text, test.formats)
+          @editor.insertAt(0, test.text, test.formats)
           @editor.doc.optimizeLines()
           expect(@editor.root).toEqualHTML(test.expected, true)
         )
       )
 
       it('formatted newline', ->
-        @editor._insertAt(0, 'A\n', { bold: true })
+        @editor.insertAt(0, 'A\n', { bold: true })
         @editor.doc.optimizeLines()
         expect(@editor.root).toEqualHTML('<div><b>A</b></div>', true)
 
@@ -132,7 +132,7 @@ describe('Editor', ->
       )
 
       it('multiple formatted newlines', ->
-        @editor._insertAt(0, 'A\nB\n', { bold: true })
+        @editor.insertAt(0, 'A\nB\n', { bold: true })
         @editor.doc.optimizeLines()
         expect(@editor.root).toEqualHTML('<div><b>A</b></div><div><b>B</b></div>', true)
         expect(@editor.doc.toDelta()).toEqualDelta(new Quill.Delta().insert('A\nB\n', { bold: true }))
@@ -178,7 +178,7 @@ describe('Editor', ->
       _.each(tests, (test, name) ->
         it(name, ->
           @editor.doc.setHTML('<div>0123<b><i>4567</i></b></div>')
-          @editor._insertAt(test.index, test.text, test.formats)
+          @editor.insertAt(test.index, test.text, test.formats)
           @editor.doc.optimizeLines()
           expect(@editor.root).toEqualHTML(test.expected.join(''), true)
         )
@@ -186,7 +186,7 @@ describe('Editor', ->
 
       it('append formatted newline', ->
         @editor.doc.setHTML('<div>A</div>')
-        @editor._insertAt(2, '\n', { bold: true })
+        @editor.insertAt(2, '\n', { bold: true })
         @editor.doc.optimizeLines()
         expect(@editor.root).toEqualHTML('<div>A</div><div><br></div>', true)
         expect(@editor.doc.toDelta()).toEqualDelta(new Quill.Delta().insert('A\n').insert('\n', { bold: true }))
@@ -194,14 +194,14 @@ describe('Editor', ->
 
       it('insert after image', ->
         @editor.doc.setHTML('<div><img src="http://quilljs.com/images/cloud.png"></div>')
-        @editor._insertAt(1, 'A', { bold: true })
+        @editor.insertAt(1, 'A', { bold: true })
         @editor.doc.optimizeLines()
         expect(@editor.root).toEqualHTML('<div><img src="http://quilljs.com/images/cloud.png"><b>A</b></div>', true)
       )
 
       it('insert newline after bullet', ->
         @editor.doc.setHTML('<ul><li>One</li></ul>')
-        @editor._insertAt(1, '\n')
+        @editor.insertAt(1, '\n')
         @editor.doc.optimizeLines()
         expect(@editor.root).toEqualHTML('<div>O</div><ul><li>ne</li></ul>', true)
       )
