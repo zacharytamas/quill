@@ -4,24 +4,14 @@ OrderedHash = require('../lib/ordered-hash')
 
 
 class Format
-  constructor: (@config) ->
+  constructor: (@config, @type = Formatter.types.INLINE) ->
 
   add: (node, value) ->
-    return this.remove(node) unless value
-    return node if this.value(node) == value
-    if _.isString(@config.parentTag)
-      parentNode = document.createElement(@config.parentTag)
-      dom(node).wrap(parentNode)
-      if node.parentNode.tagName == node.parentNode.previousSibling?.tagName
-        dom(node.parentNode.previousSibling).merge(node.parentNode)
-      if node.parentNode.tagName == node.parentNode.nextSibling?.tagName
-        dom(node.parentNode).merge(node.parentNode.nextSibling)
-    if _.isString(@config.tag)
+    if _.isString(@config.tag) and node.tagName != @config.tag
       formatNode = document.createElement(@config.tag)
       if dom.VOID_TAGS[formatNode.tagName]?
-        dom(node).replace(formatNode) if node.parentNode?
         node = formatNode
-      else if @config.type == Formatter.types.LINE
+      else if @type == Formatter.types.LINE
         node = dom(node).switchTag(@config.tag)
       else
         dom(node).wrap(formatNode)
@@ -42,22 +32,8 @@ class Format
     return node
 
   create: (value) ->
-
-  match: (node) ->
-    return false unless dom(node).isElement()
-    if _.isString(@config.parentTag) and node.parentNode?.tagName != @config.parentTag
-      return false
-    if _.isString(@config.tag) and node.tagName != @config.tag
-      return false
-    if _.isString(@config.style) and (!node.style[@config.style] or node.style[@config.style] == @config.default)
-      return false
-    if _.isString(@config.attribute) and !node.hasAttribute(@config.attribute)
-      return false
-    if _.isString(@config.class)
-      for c in dom(node).classes()
-        return true if c.indexOf(@config.class) == 0
-      return false
-    return true
+    node = document.createElement(@config.tag or dom.DEFAULT_INLINE_TAG)
+    this.add(node, value)
 
   prepare: (value) ->
     if _.isString(@config.prepare)
@@ -66,7 +42,6 @@ class Format
       this.prepare(value)
 
   remove: (node) ->
-    return node unless this.match(node)
     if _.isString(@config.style)
       node.style[@config.style] = ''    # IE10 requires setting to '', other browsers can take null
       node.removeAttribute('style') unless node.getAttribute('style')  # Some browsers leave empty style attribute
@@ -76,21 +51,15 @@ class Format
       for c in dom(node).classes()
         dom(node).removeClass(c) if c.indexOf(@config.class) == 0
     if _.isString(@config.tag)
-      if @config.type == Formatter.types.LINE
-        if _.isString(@config.parentTag)
-          dom(node).splitBefore(node.parentNode.parentNode) if node.previousSibling?
-          dom(node.nextSibling).splitBefore(node.parentNode.parentNode) if node.nextSibling?
+      if @type == Formatter.types.LINE
         node = dom(node).switchTag(dom.DEFAULT_BLOCK_TAG)
       else
         node = dom(node).switchTag(dom.DEFAULT_INLINE_TAG)
-    if _.isString(@config.parentTag)
-      dom(node.parentNode).unwrap()
     if node.tagName == dom.DEFAULT_INLINE_TAG and !node.hasAttributes()
       node = dom(node).unwrap()
     return node
 
   value: (node) ->
-    return undefined unless this.match(node)
     if _.isString(@config.attribute)
       return node.getAttribute(@config.attribute) or undefined    # So "" does not get returned
     else if _.isString(@config.style)
@@ -108,6 +77,7 @@ class Formatter extends OrderedHash
 
   @types:
     EMBED: 'embed'
+    INLINE: 'inline'
     LINE: 'line'
 
   @Format: Format

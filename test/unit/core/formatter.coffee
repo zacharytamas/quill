@@ -35,43 +35,11 @@ describe('Formatter', ->
       value: 'jason'
     line:
       format: new Quill.Formatter.Format(
-        type: 'line'
         style: 'text-align'
-      )
+      , Quill.Formatter.types.LINE)
       existing: '<div style="text-align: right;">Text</div>'
       missing: '<div>Text</div>'
       value: 'right'
-
-  describe('match()', ->
-    _.each(tests, (test, name) ->
-      it("#{name} existing", ->
-        @container.innerHTML = test.existing
-        expect(test.format.match(@container.firstChild)).toBe(true)
-      )
-
-      it("#{name} missing", ->
-        @container.innerHTML = test.missing
-        expect(test.format.match(@container.firstChild)).toBe(false)
-      )
-    )
-
-    # it("bullet existing", ->
-    #   @container.innerHTML = '<ul><li>One</li><li>Two</li><li>Three</li></ul>'
-    #   li = @container.firstChild.childNodes[1]
-    #   expect(Quill.Formatter.match(Quill.Formatter.formats.BULLET, li)).toBe(true)
-    # )
-
-    # it("bullet missing", ->
-    #   @container.innerHTML = '<ul><li>One</li></ul><div>Two</div><ul><li>Three</li></ul>'
-    #   li = @container.firstChild.childNodes[1]
-    #   expect(Quill.Formatter.match(Quill.Formatter.formats.BULLET, li)).toBe(false)
-    # )
-
-    # it('default', ->
-    #   @container.innerHTML = '<span style="font-size: 13px;">Text</span>'
-    #   expect(Quill.Formatter.match(Quill.Formatter.formats.COLOR, @container.firstChild)).toBe(false)
-    # )
-  )
 
   describe('value()', ->
     _.each(tests, (test, name) ->

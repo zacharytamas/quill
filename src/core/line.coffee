@@ -85,7 +85,7 @@ class Line extends LinkedList.Node
         [leftNode, leafNode] = dom(targetNode).split(leafOffset) if leafOffset > 0
         targetNode = leafNode
         if leaf.formats[name]?
-          while !format.match(targetNode)
+          while !format.value(targetNode)
             targetNode = targetNode.parentNode
           format.remove(targetNode)
         else
@@ -142,14 +142,11 @@ class Line extends LinkedList.Node
     if dom(@node).length() == 0 and !@node.querySelector(dom.DEFAULT_BREAK_TAG)
       @node.appendChild(document.createElement(dom.DEFAULT_BREAK_TAG))
     @leaves = new LinkedList()
-    @formats = _.reduce(@doc.formats, (formats, format, name) =>
-      if format.type == Formatter.types.LINE
-        if Formatter.match(format, @node)
-          formats[name] = Formatter.value(format, @node)
-        else
-          delete formats[name]
+    @formats = _.reduce(@doc.formatter.keys, (formats, format, name) =>
+      if format.type == Formatter.types.LINE and value = format.value(@node)
+        formats[name] = value
       return formats
-    , @formats)
+    , {})
     this.buildLeaves(@node, {})
     this.resetContent()
     return true
