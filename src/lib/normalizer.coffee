@@ -95,10 +95,7 @@ Normalizer =
     curNode = lineNode.firstChild
     while curNode?
       if dom.BLOCK_TAGS[curNode.tagName]? and curNode.tagName != 'LI'
-        if curNode.previousSibling?
-          dom(curNode).splitBefore(lineNode.parentNode)
-        if curNode.nextSibling?
-          dom(curNode.nextSibling).splitBefore(lineNode.parentNode)
+        dom(curNode).isolate(lineNode.parentNode)
         if !dom.LIST_TAGS[curNode.tagName]? or !curNode.firstChild
           dom(curNode).unwrap()
           Normalizer.pullBlocks(lineNode)
