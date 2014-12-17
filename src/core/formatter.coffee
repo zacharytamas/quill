@@ -6,7 +6,7 @@ OrderedHash = require('../lib/ordered-hash')
 class Format
   constructor: (@config) ->
 
-  add: (format, node, value) ->
+  add: (node, value) ->
     return this.remove(node) unless value
     return node if this.value(node) == value
     if _.isString(@config.parentTag)
@@ -26,7 +26,7 @@ class Format
       else
         dom(node).wrap(formatNode)
         node = formatNode
-    if _.isString(format.style) or _.isString(@config.attribute) or _.isString(@config.class)
+    if _.isString(@config.style) or _.isString(@config.attribute) or _.isString(@config.class)
       if _.isString(@config.class)
         node = this.remove(node)
       if dom(node).isTextNode()
