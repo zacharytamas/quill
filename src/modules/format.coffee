@@ -50,11 +50,6 @@ Line =
     style:
       textAlign: 'left'
 
-  BULLET:
-    tag: 'LI'
-    value: (node, value) ->
-      return value and node.parentNode?.tagName == 'UL'
-
   DIRECTION:
     style:
       direction: 'ltr'
@@ -70,19 +65,50 @@ Line =
   LIST:
     tag: 'LI'
     value: (node, value) ->
-      return value and node.parentNode?.tagName == 'OL'
+      parentTag = node.parentNode?.tagName
+      return value and (parentTag == 'OL' or parentTag == 'UL')
 
   QUOTE:
     tag: 'BLOCKQUOTE'
 
 
 Embed =
+  AUDIO:
+    tag: 'AUDIO'
+    attribute:
+      src: null
+
+  EMBED:
+    tag: 'EMBED'
+    attribute:
+      height: null
+      src: null
+      width: null
+
+  IFRAME:
+    tag: 'IFRAME'
+    attribute:
+      frameborder: 0
+      height: null
+      sandbox: true
+      src: null
+      width: null
+
   IMAGE:
     tag: 'IMG'
     attribute:
-      src: null
       alt: null
       height: null
+      src: null
+      width: null
+
+  VIDEO:
+    tag: 'VIDEO'
+    attribute:
+      autoplay: false
+      controls: true
+      height: null
+      src: null
       width: null
 
 

@@ -3,37 +3,69 @@ dom = require('../lib/dom')
 OrderedHash = require('../lib/ordered-hash')
 
 
-class Format
-  constructor: (@config, @type = Formatter.types.INLINE) ->
+calculateTag = (config, type, value) ->
+  if _.isObject(config.tag)
+    tag = _.findKey(value)
+  else if type == Formatter.types.LINE
+    tag = dom.DEFAULT_BLOCK_TAG
+  else
+    tag = dom.DEFAULT_INLINE_TAG
+  return tag
 
-  add: (node, value) ->
-    if _.isString(@config.tag) and node.tagName != @config.tag
-      formatNode = document.createElement(@config.tag)
-      if dom.VOID_TAGS[formatNode.tagName]?
-        node = formatNode
-      else if @type == Formatter.types.LINE
-        node = dom(node).switchTag(@config.tag)
-      else
-        dom(node).wrap(formatNode)
-        node = formatNode
-    if _.isString(@config.style) or _.isString(@config.attribute) or _.isString(@config.class)
-      if _.isString(@config.class)
-        node = this.remove(node)
-      if dom(node).isTextNode()
-        inline = document.createElement(dom.DEFAULT_INLINE_TAG)
-        dom(node).wrap(inline)
-        node = inline
-      if _.isString(@config.style)
-        node.style[@config.style] = value if value != @config.default
-      if _.isString(@config.attribute)
-        node.setAttribute(@config.attribute, value)
-      if _.isString(@config.class)
-        dom(node).addClass(@config.class + value)
+
+class Format
+  constructor: (config, @type = Formatter.types.INLINE) ->
+    @config = _.clone(config)
+    # Allows for shorthands ex. { tag: 'B' }
+    _.each(['tag', 'class'], (key) =>
+      if _.isString(config[key])
+        value = config[key]
+        @config[key] = {}
+        @config[key][value] = true
+    )
+
+  set: (node, value) ->
+    if @config.tag or dom(node).isTextNode()
+      tagValue = if _.isString(value) then value else value.tag
+      tag = calculateTag(this, tagValue)
+      if tag != node.tagName
+        if @type == Formatter.types.LINE
+          node = dom(node).switchTag(tag)
+        else
+          formatNode = document.createElement(tag)
+          dom(node).wrap(formatNode)
+          node = formatNode
+    if @config.attribute
+      _.each(@config.attribute, (attributeValue, attributeName) ->
+        if _.isString(value)
+          attribute = value
+        else
+          attribute = if value[attributeName]? then value[attributeName] else attributeValue
+        if attribute
+          node.setAttribute(attributeName, attribute)
+        else
+          node.removeAttribute(attributeName)
+      )
+    if @config.class
+      $node = dom(node)
+      _.each(@config.class, (classValue, className) =>
+        if className[className.length - 1] == '-'
+          _.each($node.classes(), (c) ->
+            $node.removeClass(c) if c.indexOf(className) == 0
+          )
+          classValue += className
+        $node.addClass(className)
+      )
+    if @config.style
+      _.each(@config.style, (styleDefault, styleName) ->
+        style = if _.isString(value) then value else value[styleName]
+        node.style[styleName] = style if style != styleDefault
+      )
     return node
 
   create: (value) ->
-    node = document.createElement(@config.tag or dom.DEFAULT_INLINE_TAG)
-    this.add(node, value)
+    node = document.createElement(calculateTag(this, value))
+    return this.set(node, value)
 
   prepare: (value) ->
     if _.isString(@config.prepare)
@@ -42,34 +74,85 @@ class Format
       this.prepare(value)
 
   remove: (node) ->
-    if _.isString(@config.style)
-      node.style[@config.style] = ''    # IE10 requires setting to '', other browsers can take null
-      node.removeAttribute('style') unless node.getAttribute('style')  # Some browsers leave empty style attribute
-    if _.isString(@config.attribute)
-      node.removeAttribute(@config.attribute)
-    if _.isString(@config.class)
-      for c in dom(node).classes()
-        dom(node).removeClass(c) if c.indexOf(@config.class) == 0
-    if _.isString(@config.tag)
+    if @type == Formatter.types.EMBED
+      dom(node).remove()
+      return
+    if @config.style
+      _.each(@config.style, (styleDefault, styleName) ->
+        node.style[styleName] = ''    # IE10 requires setting to '', other browsers can take null
+      )
+    if @config.class
+      $node = dom(node)
+      _.each($node.classes(), (c) =>
+        _.each(@config.class, (classValue, className) ->
+          if className[className.length - 1] == '-'
+            $node.removeClass(c) if c.indexOf(classValue) == 0
+          else
+            $node.removeClass(c) if c == classValue
+        )
+      )
+    if @config.attribute
+      _.each(@config.attribute, (attributeValue, attributeName) ->
+        node.removeAttribute(attributeName)
+      )
+    if @config.tag
       if @type == Formatter.types.LINE
         node = dom(node).switchTag(dom.DEFAULT_BLOCK_TAG)
       else
-        node = dom(node).switchTag(dom.DEFAULT_INLINE_TAG)
+        return dom(node).switchTag(dom.DEFAULT_INLINE_TAG)
     if node.tagName == dom.DEFAULT_INLINE_TAG and !node.hasAttributes()
       node = dom(node).unwrap()
     return node
 
   value: (node) ->
-    if _.isString(@config.attribute)
-      return node.getAttribute(@config.attribute) or undefined    # So "" does not get returned
-    else if _.isString(@config.style)
-      return node.style[@config.style] or undefined
-    else if _.isString(@config.class)
-      for c in dom(node).classes()
-        return c.slice(@config.class.length) if c.indexOf(@config.class) == 0
-    else if _.isString(@config.tag)
+    value = {}
+    if !_.all(@config.attribute or {}, (attributeValue, attributeName) ->
+      nodeAttribute = node.getAttribute(attributeName) or false   # Avoid ""
+      if attributeValue == null
+      # Attribute presence required when config set to null
+        return false if !nodeAttribute
+        value[attributeName] = nodeAttribute
+      else if nodeAttribute != attributeValue
+        value[attributeName] = nodeAttribute
       return true
-    return undefined
+    )
+      return undefined
+    if @config.class
+      classes = dom(node).classes()
+      if !_.all(@config.class, (classValue, className) ->
+        if className[className.length - 1] == '-'
+          return _.any(classes, (c) ->
+            if c.indexOf(classValue) == 0
+              value[className] = c.slice(classValue)
+              return true
+            return false
+          )
+        else if classes.indexOf(className) > -1
+          value[className] = true
+          return true
+        else
+          return false
+      )
+        return undefined
+    if !_.all(@config.style, (styleDefault, styleName) ->
+      style = node.style[styleName]
+      if style and style != styleDefault
+        value[styleName] = style
+        return true
+      return false
+    )
+      return undefined
+    if @config.tag and @config.tag[node.tagName]
+      value.tag = @config.tag[node.tagName]
+    else
+      return undefined
+    numKeys = _.keys(value).length
+    if numKeys == 0
+      return undefined
+    else if numKeys == 1
+      return value[_.keys(value)[0]]
+    else
+      return value
 
 
 class Formatter extends OrderedHash
