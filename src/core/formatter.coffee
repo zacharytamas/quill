@@ -4,30 +4,34 @@ OrderedHash = require('../lib/ordered-hash')
 
 
 calculateTag = (config, type, value) ->
-  if _.isObject(config.tag)
-    tag = _.findKey(value)
-  else if type == Formatter.types.LINE
-    tag = dom.DEFAULT_BLOCK_TAG
-  else
-    tag = dom.DEFAULT_INLINE_TAG
-  return tag
+  if config.tag?
+    tag = _.findKey(config.tag, (v) ->
+      return v == value
+    )
+    return tag if tag?
+  return if type == Formatter.types.LINE then dom.DEFAULT_BLOCK_TAG else dom.DEFAULT_INLINE_TAG
 
 
 class Format
+  @DEFAULTS:
+    attribute: null
+    class: true
+    style: ''
+    tag: true
+
   constructor: (config, @type = Formatter.types.INLINE) ->
     @config = _.clone(config)
     # Allows for shorthands ex. { tag: 'B' }
-    _.each(['tag', 'class'], (key) =>
+    _.each(['tag', 'style', 'class', 'attribute'], (key) =>
       if _.isString(config[key])
         value = config[key]
         @config[key] = {}
-        @config[key][value] = true
+        @config[key][value] = Format.DEFAULTS[key]
     )
 
-  set: (node, value) ->
+  add: (node, value) ->
     if @config.tag or dom(node).isTextNode()
-      tagValue = if _.isString(value) then value else value.tag
-      tag = calculateTag(this, tagValue)
+      tag = calculateTag(@config, @type, value)
       if tag != node.tagName
         if @type == Formatter.types.LINE
           node = dom(node).switchTag(tag)
@@ -48,12 +52,12 @@ class Format
       )
     if @config.class
       $node = dom(node)
-      _.each(@config.class, (classValue, className) =>
+      _.each(@config.class, (ignored, className) =>
         if className[className.length - 1] == '-'
           _.each($node.classes(), (c) ->
             $node.removeClass(c) if c.indexOf(className) == 0
           )
-          classValue += className
+          className += value
         $node.addClass(className)
       )
     if @config.style
@@ -64,7 +68,7 @@ class Format
     return node
 
   create: (value) ->
-    node = document.createElement(calculateTag(this, value))
+    node = document.createElement(calculateTag(@config, @type, value))
     return this.set(node, value)
 
   prepare: (value) ->
@@ -74,9 +78,10 @@ class Format
       this.prepare(value)
 
   remove: (node) ->
+    return node if dom(node).isTextNode()
     if @type == Formatter.types.EMBED
       dom(node).remove()
-      return
+      return null
     if @config.style
       _.each(@config.style, (styleDefault, styleName) ->
         node.style[styleName] = ''    # IE10 requires setting to '', other browsers can take null
@@ -84,11 +89,11 @@ class Format
     if @config.class
       $node = dom(node)
       _.each($node.classes(), (c) =>
-        _.each(@config.class, (classValue, className) ->
+        _.each(@config.class, (ignored, className) ->
           if className[className.length - 1] == '-'
-            $node.removeClass(c) if c.indexOf(classValue) == 0
+            $node.removeClass(c) if c.indexOf(className) == 0
           else
-            $node.removeClass(c) if c == classValue
+            $node.removeClass(c) if c == className
         )
       )
     if @config.attribute
@@ -98,13 +103,16 @@ class Format
     if @config.tag
       if @type == Formatter.types.LINE
         node = dom(node).switchTag(dom.DEFAULT_BLOCK_TAG)
+      else if !node.hasAttributes()
+        node = dom(node).switchTag(dom.DEFAULT_INLINE_TAG)
       else
-        return dom(node).switchTag(dom.DEFAULT_INLINE_TAG)
+        node = dom(node).unwrap()
     if node.tagName == dom.DEFAULT_INLINE_TAG and !node.hasAttributes()
       node = dom(node).unwrap()
     return node
 
   value: (node) ->
+    return undefined if dom(node).isTextNode()
     value = {}
     if !_.all(@config.attribute or {}, (attributeValue, attributeName) ->
       nodeAttribute = node.getAttribute(attributeName) or false   # Avoid ""
@@ -122,8 +130,8 @@ class Format
       if !_.all(@config.class, (classValue, className) ->
         if className[className.length - 1] == '-'
           return _.any(classes, (c) ->
-            if c.indexOf(classValue) == 0
-              value[className] = c.slice(classValue)
+            if c.indexOf(className) == 0
+              value[className] = c.slice(className.length)
               return true
             return false
           )
@@ -142,10 +150,11 @@ class Format
       return false
     )
       return undefined
-    if @config.tag and @config.tag[node.tagName]
-      value.tag = @config.tag[node.tagName]
-    else
-      return undefined
+    if @config.tag
+      if @config.tag[node.tagName]
+        value.tag = @config.tag[node.tagName]
+      else
+        return undefined
     numKeys = _.keys(value).length
     if numKeys == 0
       return undefined

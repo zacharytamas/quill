@@ -4,39 +4,48 @@ describe('Formatter', ->
     @container = $('#test-container').html('').get(0)
   )
 
+  formats =
+    attribute: new Quill.Formatter.Format(
+      attribute: 'data-format'
+    )
+    class: new Quill.Formatter.Format(
+      class: 'author-'
+    )
+    line: new Quill.Formatter.Format(
+      style:
+        textAlign: 'left'
+    , Quill.Formatter.types.LINE)
+    style: new Quill.Formatter.Format(
+      style:
+        color: 'red'
+    )
+    tag: new Quill.Formatter.Format(
+      tag: 'B'
+    )
+
   tests =
     tag:
-      format: new Quill.Formatter.Format(
-        tag: 'B'
-      )
+      format: formats.tag
       existing: '<b>Text</b>'
       missing: 'Text'
       value: true
     style:
-      format: new Quill.Formatter.Format(
-        style: 'color'
-      )
+      format: formats.style
       existing: '<span style="color: blue;">Text</span>'
       missing: 'Text'
       value: 'blue'
     attribute:
-      format: new Quill.Formatter.Format(
-        attribute: 'data-format'
-      )
+      format: formats.attribute
       existing: '<span data-format="attribute">Text</a>'
       missing: 'Text'
       value: 'attribute'
     class:
-      format: new Quill.Formatter.Format(
-        class: 'author-'
-      )
+      format: formats.class
       existing: '<span class="author-jason">Text</span>'
       missing: 'Text'
       value: 'jason'
     line:
-      format: new Quill.Formatter.Format(
-        style: 'text-align'
-      , Quill.Formatter.types.LINE)
+      format: formats.line
       existing: '<div style="text-align: right;">Text</div>'
       missing: '<div>Text</div>'
       value: 'right'
@@ -54,16 +63,10 @@ describe('Formatter', ->
       )
     )
 
-    # it('default', ->
-    #   @container.innerHTML = '<span style="font-size: 13px;">Text</span>'
-    #   expect(Quill.Formatter.value(Quill.Formatter.formats.COLOR, @container.firstChild)).toBe(undefined)
-    # )
-
-    # it('bullets', ->
-    #   @container.innerHTML = '<ul><li>One</li><li>Two</li><li>Three</li></ul>'
-    #   li = @container.firstChild.childNodes[1]
-    #   expect(Quill.Formatter.value(Quill.Formatter.formats.BULLET, li)).toBe(true)
-    # )
+    it('default', ->
+      @container.innerHTML = '<span style="color: red;">Text</span>'
+      expect(formats.style.value(@container.firstChild)).toBe(undefined)
+    )
   )
 
   describe('add()', ->
@@ -79,55 +82,25 @@ describe('Formatter', ->
         test.format.add(@container.firstChild, test.value)
         expect(@container).toEqualHTML(test.existing)
       )
-
-      it("#{name} add falsy value to existing", ->
-        @container.innerHTML = test.existing
-        test.format.add(@container.firstChild, false)
-        expect(@container).toEqualHTML(test.removed or test.missing)
-      )
-
-      it("#{name} add falsy value to missing", ->
-        @container.innerHTML = test.missing
-        test.format.add(@container.firstChild, false)
-        expect(@container).toEqualHTML(test.missing)
-      )
     )
 
-    # it('change value', ->
-    #   @container.innerHTML = '<span style="color: blue;">Text</span>'
-    #   Quill.Formatter.add(Quill.Formatter.formats.COLOR, @container.firstChild, 'red')
-    #   expect(@container).toEqualHTML('<span style="color: red;">Text</span>')
-    # )
+    it('change value', ->
+      @container.innerHTML = '<span style="color: blue;">Text</span>'
+      formats.style.add(@container.firstChild, 'green')
+      expect(@container).toEqualHTML('<span style="color: green;">Text</span>')
+    )
 
-    # it('default value', ->
-    #   @container.innerHTML = '<span>Text</span>'
-    #   Quill.Formatter.add(Quill.Formatter.formats.SIZE, @container.firstChild, Quill.Formatter.formats.SIZE.default)
-    #   expect(@container).toEqualHTML('<span>Text</span>')
-    # )
+    it('default value', ->
+      @container.innerHTML = '<span>Text</span>'
+      formats.style.add(@container.firstChild, 'red')
+      expect(@container).toEqualHTML('<span>Text</span>')
+    )
 
-    # it('text node tag', ->
-    #   @container.innerHTML = 'Text'
-    #   Quill.Formatter.add(Quill.Formatter.formats.BOLD, @container.firstChild, true)
-    #   expect(@container).toEqualHTML('<b>Text</b>')
-    # )
-
-    # it('text node style', ->
-    #   @container.innerHTML = 'Text'
-    #   Quill.Formatter.add(Quill.Formatter.formats.SIZE, @container.firstChild, '18px')
-    #   expect(@container).toEqualHTML('<span style="font-size: 18px;">Text</span>')
-    # )
-
-    # it('class over existing', ->
-    #   @container.innerHTML = '<span class="author-argo">Text</span>'
-    #   Quill.Formatter.add({ class: 'author-' }, @container.firstChild, 'jason')
-    #   expect(@container).toEqualHTML('<span class="author-jason">Text</span>')
-    # )
-
-    # it('bullets', ->
-    #   @container.innerHTML = '<ul><li>One</li></ul><div>Two</div><ul><li>Three</li></ul>'
-    #   Quill.Formatter.add(Quill.Formatter.formats.BULLET, @container.childNodes[1], true)
-    #   expect(@container).toEqualHTML('<ul><li>One</li><li>Two</li><li>Three</li></ul>')
-    # )
+    it('class over existing', ->
+      @container.innerHTML = '<span class="author-balto">Text</span>'
+      formats.class.add(@container.firstChild, 'jason')
+      expect(@container).toEqualHTML('<span class="author-jason">Text</span>')
+    )
   )
 
   describe('remove()', ->
@@ -144,19 +117,5 @@ describe('Formatter', ->
         expect(@container).toEqualHTML(test.missing)
       )
     )
-
-    # it('line format with parentTag', ->
-    #   @container.innerHTML = '<ul><li>One</li><li>Two</li><li>Three</li></ul>'
-    #   li = @container.firstChild.childNodes[1]
-    #   Quill.Formatter.remove(Quill.Formatter.formats.BULLET, li)
-    #   expect(@container).toEqualHTML('<ul><li>One</li></ul><div>Two</div><ul><li>Three</li></ul>')
-    # )
-
-    # it('line format without parentTag', ->
-    #   @container.innerHTML = '<div>One</div><h1>Two</h1><div>Three</div>'
-    #   line = @container.childNodes[1]
-    #   Quill.Formatter.remove({ type: Quill.Formatter.types.LINE, tag: 'H1' }, line)
-    #   expect(@container).toEqualHTML('<div>One</div><div>Two</div><div>Three</div>')
-    # )
   )
 )
