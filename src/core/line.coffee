@@ -22,17 +22,8 @@ class Line extends LinkedList.Node
   buildLeaves: (node, formats) ->
     _.each(dom(node).childNodes(), (node) =>
       node = Normalizer.normalizeNode(node)
-      nodeFormats = _.clone(formats)
-      # TODO: optimize
-      _.each(@doc.formats, (format, name) ->
-        if format.type != Formatter.types.LINE and value = Formatter.value(format, node)
-          nodeFormats[name] = value
-      )
+      nodeFormats = _.defaults({}, formats, @doc.formatter.check(node))
       if Leaf.isLeafNode(node)
-        _.each(@doc.embeds, (embed, name) ->
-          if value = Embedder.value(embed, node)
-            nodeFormats[name] = value
-        )
         @leaves.append(new Leaf(node, nodeFormats))
       else
         this.buildLeaves(node, nodeFormats)

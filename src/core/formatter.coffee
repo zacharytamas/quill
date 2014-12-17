@@ -7,114 +7,125 @@ class Format
   constructor: (@config) ->
 
   add: (format, node, value) ->
-    return this.remove(format, node) unless value
-    return node if this.value(format, node) == value
-    if _.isString(format.parentTag)
-      parentNode = document.createElement(format.parentTag)
+    return this.remove(node) unless value
+    return node if this.value(node) == value
+    if _.isString(@config.parentTag)
+      parentNode = document.createElement(@config.parentTag)
       dom(node).wrap(parentNode)
       if node.parentNode.tagName == node.parentNode.previousSibling?.tagName
         dom(node.parentNode.previousSibling).merge(node.parentNode)
       if node.parentNode.tagName == node.parentNode.nextSibling?.tagName
         dom(node.parentNode).merge(node.parentNode.nextSibling)
-    if _.isString(format.tag)
-      formatNode = document.createElement(format.tag)
+    if _.isString(@config.tag)
+      formatNode = document.createElement(@config.tag)
       if dom.VOID_TAGS[formatNode.tagName]?
         dom(node).replace(formatNode) if node.parentNode?
         node = formatNode
-      else if format.type == Formatter.types.LINE
-        node = dom(node).switchTag(format.tag)
+      else if @config.type == Formatter.types.LINE
+        node = dom(node).switchTag(@config.tag)
       else
         dom(node).wrap(formatNode)
         node = formatNode
-    if _.isString(format.style) or _.isString(format.attribute) or _.isString(format.class)
-      if _.isString(format.class)
-        node = this.remove(format, node)
+    if _.isString(format.style) or _.isString(@config.attribute) or _.isString(@config.class)
+      if _.isString(@config.class)
+        node = this.remove(node)
       if dom(node).isTextNode()
         inline = document.createElement(dom.DEFAULT_INLINE_TAG)
         dom(node).wrap(inline)
         node = inline
-      if _.isString(format.style)
-        node.style[format.style] = value if value != format.default
-      if _.isString(format.attribute)
-        node.setAttribute(format.attribute, value)
-      if _.isString(format.class)
-        dom(node).addClass(format.class + value)
+      if _.isString(@config.style)
+        node.style[@config.style] = value if value != @config.default
+      if _.isString(@config.attribute)
+        node.setAttribute(@config.attribute, value)
+      if _.isString(@config.class)
+        dom(node).addClass(@config.class + value)
     return node
 
   create: (value) ->
 
-  match: (format, node) ->
+  match: (node) ->
     return false unless dom(node).isElement()
-    if _.isString(format.parentTag) and node.parentNode?.tagName != format.parentTag
+    if _.isString(@config.parentTag) and node.parentNode?.tagName != @config.parentTag
       return false
-    if _.isString(format.tag) and node.tagName != format.tag
+    if _.isString(@config.tag) and node.tagName != @config.tag
       return false
-    if _.isString(format.style) and (!node.style[format.style] or node.style[format.style] == format.default)
+    if _.isString(@config.style) and (!node.style[@config.style] or node.style[@config.style] == @config.default)
       return false
-    if _.isString(format.attribute) and !node.hasAttribute(format.attribute)
+    if _.isString(@config.attribute) and !node.hasAttribute(@config.attribute)
       return false
-    if _.isString(format.class)
+    if _.isString(@config.class)
       for c in dom(node).classes()
-        return true if c.indexOf(format.class) == 0
+        return true if c.indexOf(@config.class) == 0
       return false
     return true
 
-  prepare: (format, value) ->
-    if _.isString(format.prepare)
-      document.execCommand(format.prepare, false, value)
-    else if _.isFunction(format.prepare)
-      format.prepare(value)
+  prepare: (value) ->
+    if _.isString(@config.prepare)
+      document.execCommand(@config.prepare, false, value)
+    else if _.isFunction(@config.prepare)
+      this.prepare(value)
 
-  remove: (format, node) ->
-    return node unless this.match(format, node)
-    if _.isString(format.style)
-      node.style[format.style] = ''    # IE10 requires setting to '', other browsers can take null
+  remove: (node) ->
+    return node unless this.match(node)
+    if _.isString(@config.style)
+      node.style[@config.style] = ''    # IE10 requires setting to '', other browsers can take null
       node.removeAttribute('style') unless node.getAttribute('style')  # Some browsers leave empty style attribute
-    if _.isString(format.attribute)
-      node.removeAttribute(format.attribute)
-    if _.isString(format.class)
+    if _.isString(@config.attribute)
+      node.removeAttribute(@config.attribute)
+    if _.isString(@config.class)
       for c in dom(node).classes()
-        dom(node).removeClass(c) if c.indexOf(format.class) == 0
-    if _.isString(format.tag)
-      if format.type == Formatter.types.LINE
-        if _.isString(format.parentTag)
+        dom(node).removeClass(c) if c.indexOf(@config.class) == 0
+    if _.isString(@config.tag)
+      if @config.type == Formatter.types.LINE
+        if _.isString(@config.parentTag)
           dom(node).splitBefore(node.parentNode.parentNode) if node.previousSibling?
           dom(node.nextSibling).splitBefore(node.parentNode.parentNode) if node.nextSibling?
         node = dom(node).switchTag(dom.DEFAULT_BLOCK_TAG)
       else
         node = dom(node).switchTag(dom.DEFAULT_INLINE_TAG)
-    if _.isString(format.parentTag)
+    if _.isString(@config.parentTag)
       dom(node.parentNode).unwrap()
     if node.tagName == dom.DEFAULT_INLINE_TAG and !node.hasAttributes()
       node = dom(node).unwrap()
     return node
 
-  value: (format, node) ->
-    return undefined unless this.match(format, node)
-    if _.isString(format.attribute)
-      return node.getAttribute(format.attribute) or undefined    # So "" does not get returned
-    else if _.isString(format.style)
-      return node.style[format.style] or undefined
-    else if _.isString(format.class)
+  value: (node) ->
+    return undefined unless this.match(node)
+    if _.isString(@config.attribute)
+      return node.getAttribute(@config.attribute) or undefined    # So "" does not get returned
+    else if _.isString(@config.style)
+      return node.style[@config.style] or undefined
+    else if _.isString(@config.class)
       for c in dom(node).classes()
-        return c.slice(format.class.length) if c.indexOf(format.class) == 0
-    else if _.isString(format.tag)
+        return c.slice(@config.class.length) if c.indexOf(@config.class) == 0
+    else if _.isString(@config.tag)
       return true
     return undefined
 
 
 class Formatter extends OrderedHash
+  @formats: new OrderedHash()
+
   @types:
     EMBED: 'embed'
     LINE: 'line'
 
   @Format: Format
 
+  add: (name) ->
+    format = Formatter.formats.get(name)
+    throw new Error("Cannot load #{name} format. Are you sure you registered it?") unless format?
+    this.set(name, format)
+    # TODO Suboptimal performance and somewhat hacky
+    @keys.sort(_.bind(Formatter.formats.compare, Formatter.formats))
+
   check: (node) ->
+    # TODO optimize
     return _.reduce(@hash, (formats, format, name) ->
-      formats.push(name) if format.match(node)
+      if value = format.value(node)
+        formats[name] = value
       return formats
-    , [])
+    , {})
 
 
 module.exports = Formatter

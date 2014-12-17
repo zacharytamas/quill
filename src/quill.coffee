@@ -13,7 +13,6 @@ class Quill extends EventEmitter2
   @version: pkg.version
   @editors: []
 
-  @formats: new OrderedHash()
   @modules: {}
   @themes: {}
 
@@ -38,8 +37,8 @@ class Quill extends EventEmitter2
   @sources: Editor.sources
 
   @registerFormat: (name, config) ->
-    console.warn("Overwriting #{name} format") if Quill.formats.get(name)?
-    Quill.formats.set(name, config)
+    console.warn("Overwriting #{name} format") if Formatter.formats.get(name)?
+    Formatter.formats.set(name, new Formatter.Format(config))
 
   @registerModule: (name, module) ->
     console.warn("Overwriting #{name} module") if Quill.modules[name]?
@@ -75,7 +74,6 @@ class Quill extends EventEmitter2
     themeClass = Quill.themes[@options.theme]
     throw new Error("Cannot load #{@options.theme} theme. Are you sure you registered it?") unless themeClass?
     @theme = new themeClass(this, @options)
-    _.each(@options.formats, _.bind(this.addFormat, this))
     _.each(@options.modules, (option, name) =>
       this.addModule(name, option)
     )
@@ -98,11 +96,7 @@ class Quill extends EventEmitter2
     return container
 
   addFormat: (name) ->
-    format = Quill.formats.get(name)
-    throw new Error("Cannot load #{name} format. Are you sure you registered it?") unless format?
-    @editor.doc.formatter.set(name, format)
-    # TODO Suboptimal performance and somewhat hacky
-    @editor.doc.formatter.keys.sort(_.bind(Quill.formats.compare, Quill.formats))
+    @doc.formatter.add(name)
 
   addModule: (name, options) ->
     moduleClass = Quill.modules[name]

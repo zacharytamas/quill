@@ -65,8 +65,8 @@ Format =
         width: null
 
 
-_.each(Format.formats, (format, name) ->
-  Quill.registerFormat(name.toLowerCase(), format)
+_.each(Format.formats, (config, name) ->
+  Quill.registerFormat(name.toLowerCase(), config)
 )
 
 

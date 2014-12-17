@@ -8,9 +8,10 @@ Normalizer = require('../lib/normalizer')
 
 
 class Document
-  constructor: (@root, options) ->
-    this.setHTML(@root.innerHTML)
+  constructor: (@root, options = {}) ->
     @formatter = new Formatter()
+    _.each(options.formats, _.bind(@formatter.add, @formatter))
+    this.setHTML(@root.innerHTML)
 
   appendLine: (lineNode) ->
     return this.insertLineBefore(lineNode, null)
