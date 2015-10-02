@@ -22,7 +22,7 @@ class Range
 class Selection
   @Range: Range
 
-  constructor: (@doc) ->
+  constructor: (@doc, @documentRoot = document) ->
     @root = @doc.domNode
     @lastRange = @savedRange = new Range(0, 0)  # savedRange is never null
     ['keyup', 'mouseup', 'mouseleave', 'touchend', 'touchleave'].forEach((eventName) =>
@@ -33,7 +33,7 @@ class Selection
     this.update()
 
   checkFocus: ->
-    return document.activeElement == @root
+    return @documentRoot.activeElement == @root
 
   focus: ->
     return if this.checkFocus()
@@ -68,7 +68,7 @@ class Selection
     }
 
   getNativeRange: ->
-    selection = document.getSelection()
+    selection = @documentRoot.getSelection()
     return null unless selection?.rangeCount > 0
     nativeRange = selection.getRangeAt(0)
     if nativeRange.startContainer != @root &&
@@ -126,7 +126,7 @@ class Selection
       line.node.scrollIntoView()
 
   setNativeRange: (startNode, startOffset, endNode = startNode, endOffset = startOffset) ->
-    selection = document.getSelection()
+    selection = @documentRoot.getSelection()
     return unless selection
     if startNode?
       # Need to focus before setting or else in IE9/10 later focus will cause a set on 0th index on line div

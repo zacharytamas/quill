@@ -25,6 +25,7 @@ class Quill extends EventEmitter
   @themes: {}
 
   @DEFAULTS:
+    documentRoot: document
     formats: [
       'align', 'direction',
       'bullet', 'header', 'list',
@@ -88,7 +89,7 @@ class Quill extends EventEmitter
     @root = this.addContainer('ql-editor')
     @root.innerHTML = html.trim()  # TODO fix
     @root.setAttribute('id', @options.id)
-    @editor = new Editor(@root)
+    @editor = new Editor(@root, @options.documentRoot)
     @selection = new Selection(@editor)
     @editor.onUpdate = (delta, source = Quill.sources.USER) =>
       this.emit(Quill.events.TEXT_CHANGE, delta, source)
